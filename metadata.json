@@ -1,0 +1,8 @@
+{
+  "name": "Học Cùng Thỏ Mây và cô Tú",
+  "description": "Ngôi nhà học tập Lớp 3.17 của cô Tú — Học tập, ôn tập tương tác, kho game và hoạt động lớp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

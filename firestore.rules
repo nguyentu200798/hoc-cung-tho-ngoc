@@ -1,0 +1,528 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isTeacher() {
+      return isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email == 'nguyentu200798@gmail.com';
+    }
+
+    function isValidSiteConfig(data) {
+      return data.keys().hasAll([
+          'classTitle',
+          'classSubtitle',
+          'heroHeadline',
+          'heroHeadlineEn',
+          'announcement',
+          'announcementEn',
+          'footerCredit',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'classTitle',
+          'classSubtitle',
+          'heroHeadline',
+          'heroHeadlineEn',
+          'announcement',
+          'announcementEn',
+          'footerCredit',
+          'updatedAt'
+        ])
+        && data.classTitle is string && data.classTitle.size() >= 1 && data.classTitle.size() <= 120
+        && data.classSubtitle is string && data.classSubtitle.size() >= 1 && data.classSubtitle.size() <= 140
+        && data.heroHeadline is string && data.heroHeadline.size() >= 1 && data.heroHeadline.size() <= 180
+        && data.heroHeadlineEn is string && data.heroHeadlineEn.size() >= 1 && data.heroHeadlineEn.size() <= 180
+        && data.announcement is string && data.announcement.size() <= 500
+        && data.announcementEn is string && data.announcementEn.size() <= 500
+        && data.footerCredit is string && data.footerCredit.size() <= 100;
+    }
+
+    function isValidTeamScore(data) {
+      return data.keys().hasAll(['isPublic', 'teamId', 'name', 'nameEn', 'points', 'updatedAt'])
+        && data.keys().hasOnly(['isPublic', 'teamId', 'name', 'nameEn', 'points', 'updatedAt'])
+        && data.isPublic == true
+        && data.teamId is int && data.teamId >= 1 && data.teamId <= 4
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 40
+        && data.nameEn is string && data.nameEn.size() >= 1 && data.nameEn.size() <= 40
+        && data.points is int && data.points >= 0 && data.points <= 100000;
+    }
+
+    function isValidStudentRecord(data) {
+      return data.keys().hasAll(['isPublic', 'name', 'teamId', 'bonusStars', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['isPublic', 'name', 'teamId', 'bonusStars', 'createdAt', 'updatedAt'])
+        && data.isPublic == true
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 100
+        && data.teamId is int && data.teamId >= 1 && data.teamId <= 4
+        && data.bonusStars is int && data.bonusStars >= 0 && data.bonusStars <= 10000;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['isPublic', 'title', 'titleEn', 'completed', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['isPublic', 'title', 'titleEn', 'completed', 'createdAt', 'updatedAt'])
+        && data.isPublic == true
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.titleEn is string && data.titleEn.size() <= 200
+        && data.completed is bool;
+    }
+
+    function isValidActivity(data) {
+      return data.keys().hasAll([
+          'isPublic',
+          'title',
+          'titleEn',
+          'dateLabel',
+          'imageUrl',
+          'caption',
+          'captionEn',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'isPublic',
+          'title',
+          'titleEn',
+          'dateLabel',
+          'imageUrl',
+          'caption',
+          'captionEn',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.isPublic == true
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 160
+        && data.titleEn is string && data.titleEn.size() <= 160
+        && data.dateLabel is string && data.dateLabel.size() >= 1 && data.dateLabel.size() <= 80
+        && data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 250000
+        && data.caption is string && data.caption.size() >= 1 && data.caption.size() <= 500
+        && data.captionEn is string && data.captionEn.size() <= 500;
+    }
+
+    function isValidSubjectId(subjectId) {
+      return subjectId in [
+        'toan',
+        'tieng-viet',
+        'tieng-anh',
+        'cong-nghe',
+        'tin-hoc',
+        'tnxh',
+        'dao-duc',
+        'mi-thuat',
+        'am-nhac',
+        'the-duc',
+        'hdtn'
+      ];
+    }
+
+    function isValidSubjectLesson(data) {
+      return data.keys().hasAll([
+          'isPublic',
+          'subjectId',
+          'title',
+          'titleEn',
+          'summary',
+          'summaryEn',
+          'keyPoints',
+          'flashcards',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'isPublic',
+          'subjectId',
+          'title',
+          'titleEn',
+          'summary',
+          'summaryEn',
+          'keyPoints',
+          'flashcards',
+          'attachments',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.isPublic == true
+        && isValidSubjectId(data.subjectId)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 160
+        && data.titleEn is string && data.titleEn.size() <= 160
+        && data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 400
+        && data.summaryEn is string && data.summaryEn.size() <= 400
+        && data.keyPoints is list && data.keyPoints.size() <= 10
+        && (data.keyPoints.size() == 0 || data.keyPoints[0] is string)
+        && data.flashcards is list && data.flashcards.size() <= 12
+        && (data.flashcards.size() == 0 || data.flashcards[0] is map)
+        && (!('attachments' in data) || (
+          data.attachments is list
+          && data.attachments.size() <= 8
+          && (data.attachments.size() == 0 || (
+            data.attachments[0] is map
+            && data.attachments[0].name is string && data.attachments[0].name.size() <= 200
+            && data.attachments[0].url is string && data.attachments[0].url.size() <= 250000
+          ))
+        ));
+    }
+
+    function isValidCloudGame(data) {
+      return data.keys().hasAll(['isPublic', 'title', 'sourceType', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'isPublic',
+          'title',
+          'titleEn',
+          'topic',
+          'imageUrl',
+          'sourceType',
+          'url',
+          'playUrl',
+          'entryFile',
+          'runtimeStatus',
+          'fileName',
+          'fileSizeLabel',
+          'htmlContent',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.isPublic == true
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+        && (!('titleEn' in data) || (data.titleEn is string && data.titleEn.size() <= 120))
+        && (!('topic' in data) || (data.topic is string && data.topic.size() <= 40))
+        && (!('imageUrl' in data) || (data.imageUrl is string && data.imageUrl.size() <= 250000))
+        && data.sourceType in ['url', 'zip', 'html', 'archive']
+        && (!('url' in data) || (data.url is string && data.url.size() <= 1000))
+        && (!('playUrl' in data) || (data.playUrl is string && data.playUrl.size() <= 500))
+        && (!('entryFile' in data) || (data.entryFile is string && data.entryFile.size() <= 200))
+        && (!('runtimeStatus' in data) || (data.runtimeStatus is string && data.runtimeStatus.size() <= 40))
+        && (!('fileName' in data) || (data.fileName is string && data.fileName.size() <= 200))
+        && (!('fileSizeLabel' in data) || (data.fileSizeLabel is string && data.fileSizeLabel.size() <= 40))
+        && (!('htmlContent' in data) || (data.htmlContent is string && data.htmlContent.size() <= 750000));
+    }
+
+    function isValidQuizResult(data) {
+      return data.keys().hasAll([
+          'isPublic',
+          'studentName',
+          'teamId',
+          'topic',
+          'topicLabel',
+          'correctCount',
+          'totalCount',
+          'starsEarned',
+          'completedAt',
+          'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'isPublic',
+          'studentName',
+          'teamId',
+          'topic',
+          'topicLabel',
+          'correctCount',
+          'totalCount',
+          'starsEarned',
+          'completedAt',
+          'createdAt'
+        ])
+        && data.isPublic == true
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 100
+        && data.teamId is int && data.teamId >= 1 && data.teamId <= 4
+        && data.topic in ['mul-6-9', 'div-6-9', 'add-sub-1000', 'mixed']
+        && data.topicLabel is string && data.topicLabel.size() >= 1 && data.topicLabel.size() <= 100
+        && data.correctCount is int && data.correctCount >= 0 && data.correctCount <= 50
+        && data.totalCount is int && data.totalCount >= 1 && data.totalCount <= 50
+        && data.starsEarned is int && data.starsEarned >= 0 && data.starsEarned <= 10
+        && data.completedAt is string && data.completedAt.size() >= 1 && data.completedAt.size() <= 40;
+    }
+
+    function isValidStudentAchievement(data) {
+      return data.keys().hasAll([
+          'isPublic',
+          'studentName',
+          'achievement',
+          'achievementEn',
+          'dateLabel',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'isPublic',
+          'studentName',
+          'achievement',
+          'achievementEn',
+          'dateLabel',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.isPublic == true
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 100
+        && data.achievement is string && data.achievement.size() >= 1 && data.achievement.size() <= 300
+        && data.achievementEn is string && data.achievementEn.size() <= 300
+        && data.dateLabel is string && data.dateLabel.size() >= 1 && data.dateLabel.size() <= 60;
+    }
+
+    function isValidWeeklyHonor(data) {
+      return data.keys().hasAll([
+          'isPublic',
+          'studentName',
+          'weekLabel',
+          'note',
+          'rankOrder',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'isPublic',
+          'studentName',
+          'weekLabel',
+          'note',
+          'rankOrder',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.isPublic == true
+        && data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 100
+        && data.weekLabel is string && data.weekLabel.size() >= 1 && data.weekLabel.size() <= 80
+        && data.note is string && data.note.size() <= 240
+        && data.rankOrder is int && data.rankOrder >= 1 && data.rankOrder <= 100;
+    }
+
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+
+    match /site_config/{configId} {
+      allow get: if configId == 'main';
+      allow create: if configId == 'main'
+        && isTeacher()
+        && isValidSiteConfig(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if configId == 'main'
+        && isTeacher()
+        && isValidSiteConfig(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'classTitle',
+          'classSubtitle',
+          'heroHeadline',
+          'heroHeadlineEn',
+          'announcement',
+          'announcementEn',
+          'footerCredit',
+          'updatedAt'
+        ])
+        && incoming().updatedAt == request.time;
+    }
+
+    match /teams/{teamId} {
+      allow get: if isValidId(teamId);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isValidId(teamId)
+        && isTeacher()
+        && isValidTeamScore(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(teamId)
+        && isTeacher()
+        && isValidTeamScore(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['points', 'name', 'nameEn', 'updatedAt'])
+        && incoming().teamId == existing().teamId
+        && incoming().isPublic == existing().isPublic
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(teamId) && isTeacher();
+    }
+
+    match /students/{studentId} {
+      allow get: if isValidId(studentId);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isValidId(studentId)
+        && isTeacher()
+        && isValidStudentRecord(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(studentId)
+        && isTeacher()
+        && isValidStudentRecord(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'teamId', 'bonusStars', 'updatedAt'])
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(studentId) && isTeacher();
+    }
+
+    match /tasks/{taskId} {
+      allow get: if isValidId(taskId);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isValidId(taskId)
+        && isTeacher()
+        && isValidTask(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(taskId)
+        && isTeacher()
+        && isValidTask(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'titleEn', 'completed', 'updatedAt'])
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(taskId) && isTeacher();
+    }
+
+    match /activities/{activityId} {
+      allow get: if isValidId(activityId);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isValidId(activityId)
+        && isTeacher()
+        && isValidActivity(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(activityId)
+        && isTeacher()
+        && isValidActivity(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title',
+          'titleEn',
+          'dateLabel',
+          'imageUrl',
+          'caption',
+          'captionEn',
+          'updatedAt'
+        ])
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(activityId) && isTeacher();
+    }
+
+    match /subject_lessons/{lessonId} {
+      allow get: if isValidId(lessonId);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isValidId(lessonId)
+        && isTeacher()
+        && isValidSubjectLesson(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(lessonId)
+        && isTeacher()
+        && isValidSubjectLesson(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'subjectId',
+          'title',
+          'titleEn',
+          'summary',
+          'summaryEn',
+          'keyPoints',
+          'flashcards',
+          'attachments',
+          'updatedAt'
+        ])
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(lessonId) && isTeacher();
+    }
+
+    match /games/{gameId} {
+      allow get: if isValidId(gameId);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isValidId(gameId)
+        && isTeacher()
+        && isValidCloudGame(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(gameId)
+        && isTeacher()
+        && isValidCloudGame(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title',
+          'titleEn',
+          'topic',
+          'imageUrl',
+          'sourceType',
+          'url',
+          'playUrl',
+          'entryFile',
+          'runtimeStatus',
+          'fileName',
+          'fileSizeLabel',
+          'htmlContent',
+          'updatedAt'
+        ])
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(gameId) && isTeacher();
+    }
+
+    match /quiz_results/{resultId} {
+      allow get: if isValidId(resultId);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isValidId(resultId)
+        && isValidQuizResult(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(resultId) && isTeacher() && isValidQuizResult(incoming());
+      allow delete: if isValidId(resultId) && isTeacher();
+    }
+
+    match /student_achievements/{achievementId} {
+      allow get: if isValidId(achievementId);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isValidId(achievementId)
+        && isTeacher()
+        && isValidStudentAchievement(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(achievementId)
+        && isTeacher()
+        && isValidStudentAchievement(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'studentName',
+          'achievement',
+          'achievementEn',
+          'dateLabel',
+          'updatedAt'
+        ])
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(achievementId) && isTeacher();
+    }
+
+    match /weekly_honors/{honorId} {
+      allow get: if isValidId(honorId);
+      allow list: if resource.data.isPublic == true;
+      allow create: if isValidId(honorId)
+        && isTeacher()
+        && isValidWeeklyHonor(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(honorId)
+        && isTeacher()
+        && isValidWeeklyHonor(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'studentName',
+          'weekLabel',
+          'note',
+          'rankOrder',
+          'updatedAt'
+        ])
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(honorId) && isTeacher();
+    }
+  }
+}

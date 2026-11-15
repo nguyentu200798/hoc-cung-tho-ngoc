@@ -1,0 +1,598 @@
+{
+  "entities": {
+    "SiteConfig": {
+      "title": "SiteConfig",
+      "description": "Global page configuration and bilingual announcements managed by Ms. Tu.",
+      "type": "object",
+      "properties": {
+        "classTitle": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Main classroom title in Vietnamese."
+        },
+        "classSubtitle": {
+          "type": "string",
+          "maxLength": 140,
+          "description": "Bilingual subtitle shown under the main title."
+        },
+        "heroHeadline": {
+          "type": "string",
+          "maxLength": 180,
+          "description": "Center hero headline in Vietnamese."
+        },
+        "heroHeadlineEn": {
+          "type": "string",
+          "maxLength": 180,
+          "description": "Center hero headline in English."
+        },
+        "announcement": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Daily classroom announcement in Vietnamese."
+        },
+        "announcementEn": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Daily classroom announcement in English."
+        },
+        "footerCredit": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Footer credit text."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the latest update."
+        }
+      },
+      "required": [
+        "classTitle",
+        "classSubtitle",
+        "heroHeadline",
+        "heroHeadlineEn",
+        "announcement",
+        "announcementEn",
+        "footerCredit",
+        "updatedAt"
+      ]
+    },
+    "TeamScore": {
+      "title": "TeamScore",
+      "description": "Team competition score for Teams 1 to 4 in Class 3.17.",
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public classroom visibility flag."
+        },
+        "teamId": {
+          "type": "integer",
+          "description": "Team number 1 through 4."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Vietnamese team name."
+        },
+        "nameEn": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "English team name."
+        },
+        "points": {
+          "type": "integer",
+          "description": "Current competition score."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": ["isPublic", "teamId", "name", "nameEn", "points", "updatedAt"]
+    },
+    "StudentRecord": {
+      "title": "StudentRecord",
+      "description": "Student roster entry with team assignment and personal achievement stars.",
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public classroom visibility flag."
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Student display name."
+        },
+        "teamId": {
+          "type": "integer",
+          "description": "Assigned team number (1 to 4)."
+        },
+        "bonusStars": {
+          "type": "integer",
+          "description": "Personal achievement stars awarded by teacher."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp."
+        }
+      },
+      "required": ["isPublic", "name", "teamId", "bonusStars", "createdAt", "updatedAt"]
+    },
+    "DailyTask": {
+      "title": "DailyTask",
+      "description": "Daily and weekly classroom checklist item.",
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public classroom visibility flag."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Task title in Vietnamese."
+        },
+        "titleEn": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Task title in English."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the task is checked off."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp."
+        }
+      },
+      "required": ["isPublic", "title", "titleEn", "completed", "createdAt", "updatedAt"]
+    },
+    "ClassActivity": {
+      "title": "ClassActivity",
+      "description": "Class photo and activity highlight published by the teacher.",
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public classroom visibility flag."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Activity headline in Vietnamese."
+        },
+        "titleEn": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Activity headline in English."
+        },
+        "dateLabel": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Date and location label."
+        },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 250000,
+          "description": "Photo URL or compressed data URI."
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Vietnamese activity caption."
+        },
+        "captionEn": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "English activity caption."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp."
+        }
+      },
+      "required": [
+        "isPublic",
+        "title",
+        "titleEn",
+        "dateLabel",
+        "imageUrl",
+        "caption",
+        "captionEn",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SubjectLessonDoc": {
+      "title": "SubjectLessonDoc",
+      "description": "Teacher-published lesson and flashcards for a Grade 3 subject.",
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public classroom visibility flag."
+        },
+        "subjectId": {
+          "type": "string",
+          "enum": [
+            "toan",
+            "tieng-viet",
+            "tieng-anh",
+            "cong-nghe",
+            "tin-hoc",
+            "tnxh",
+            "dao-duc",
+            "mi-thuat",
+            "am-nhac",
+            "the-duc",
+            "hdtn"
+          ],
+          "description": "Identifier of the Grade 3 subject."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Lesson title in Vietnamese."
+        },
+        "titleEn": {
+          "type": "string",
+          "maxLength": 160,
+          "description": "Lesson title in English."
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 400,
+          "description": "Lesson summary in Vietnamese."
+        },
+        "summaryEn": {
+          "type": "string",
+          "maxLength": 400,
+          "description": "Lesson summary in English."
+        },
+        "keyPoints": {
+          "type": "array",
+          "description": "Up to 10 key bullet points."
+        },
+        "flashcards": {
+          "type": "array",
+          "description": "Up to 12 front/back flashcards."
+        },
+        "attachments": {
+          "type": "array",
+          "description": "Up to 8 attached images or lesson document files (.pdf, .docx, .doc)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp."
+        }
+      },
+      "required": [
+        "isPublic",
+        "subjectId",
+        "title",
+        "titleEn",
+        "summary",
+        "summaryEn",
+        "keyPoints",
+        "flashcards",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CloudGame": {
+      "title": "CloudGame",
+      "description": "Interactive cloud game added by Ms. Tu via archive upload or URL.",
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public classroom visibility flag."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Game title in Vietnamese."
+        },
+        "titleEn": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Optional game subtitle in English."
+        },
+        "topic": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Optional subject/theme category for filtering games."
+        },
+        "imageUrl": {
+          "type": "string",
+          "maxLength": 250000,
+          "description": "Optional thumbnail illustration URL or compressed data URI."
+        },
+        "sourceType": {
+          "type": "string",
+          "enum": ["url", "zip", "html", "archive"],
+          "description": "Source type of the uploaded game."
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "External game URL when sourceType is url."
+        },
+        "playUrl": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "Optional runtime URL path for extracted static/built ZIP game."
+        },
+        "entryFile": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Optional detected HTML entry point inside uploaded archive."
+        },
+        "runtimeStatus": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Optional runtime build/extraction status."
+        },
+        "fileName": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Original uploaded file name."
+        },
+        "fileSizeLabel": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Formatted file size."
+        },
+        "htmlContent": {
+          "type": "string",
+          "maxLength": 750000,
+          "description": "Inlined HTML5 game bundle when within Firestore document limit."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp."
+        }
+      },
+      "required": ["isPublic", "title", "sourceType", "createdAt", "updatedAt"]
+    },
+    "QuizResult": {
+      "title": "QuizResult",
+      "description": "Student practice quiz score recorded on the class leaderboard.",
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public classroom visibility flag."
+        },
+        "studentName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Student display name."
+        },
+        "teamId": {
+          "type": "integer",
+          "description": "Team number 1 to 4."
+        },
+        "topic": {
+          "type": "string",
+          "enum": ["mul-6-9", "div-6-9", "add-sub-1000", "mixed"],
+          "description": "Math practice topic."
+        },
+        "topicLabel": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Localized topic label."
+        },
+        "correctCount": {
+          "type": "integer",
+          "description": "Number of correct answers."
+        },
+        "totalCount": {
+          "type": "integer",
+          "description": "Total number of questions."
+        },
+        "starsEarned": {
+          "type": "integer",
+          "description": "Stars earned from the quiz."
+        },
+        "completedAt": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "ISO timestamp of completion."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp."
+        }
+      },
+      "required": [
+        "isPublic",
+        "studentName",
+        "teamId",
+        "topic",
+        "topicLabel",
+        "correctCount",
+        "totalCount",
+        "starsEarned",
+        "completedAt",
+        "createdAt"
+      ]
+    },
+    "StudentAchievement": {
+      "title": "StudentAchievement",
+      "description": "Individual student achievement published by Ms. Tu.",
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public classroom visibility flag."
+        },
+        "studentName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Student full name."
+        },
+        "achievement": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Achievement description in Vietnamese."
+        },
+        "achievementEn": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Optional English achievement description."
+        },
+        "dateLabel": {
+          "type": "string",
+          "maxLength": 60,
+          "description": "Achievement date string."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp."
+        }
+      },
+      "required": [
+        "isPublic",
+        "studentName",
+        "achievement",
+        "achievementEn",
+        "dateLabel",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WeeklyHonor": {
+      "title": "WeeklyHonor",
+      "description": "Weekly honored student entry published by Ms. Tu.",
+      "type": "object",
+      "properties": {
+        "isPublic": {
+          "type": "boolean",
+          "description": "Public classroom visibility flag."
+        },
+        "studentName": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Honored student full name."
+        },
+        "weekLabel": {
+          "type": "string",
+          "maxLength": 80,
+          "description": "Week identifier label."
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 240,
+          "description": "Optional teacher praise note."
+        },
+        "rankOrder": {
+          "type": "integer",
+          "description": "Display order in weekly honor board."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation server timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Update server timestamp."
+        }
+      },
+      "required": [
+        "isPublic",
+        "studentName",
+        "weekLabel",
+        "note",
+        "rankOrder",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/site_config/{configId}": {
+      "schema": { "$ref": "#/entities/SiteConfig" },
+      "description": "Global page config document (id: main) managed by Ms. Tu."
+    },
+    "/teams/{teamId}": {
+      "schema": { "$ref": "#/entities/TeamScore" },
+      "description": "Team scores for Teams 1 to 4."
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/StudentRecord" },
+      "description": "Class 3.17 student roster."
+    },
+    "/student_achievements/{achievementId}": {
+      "schema": { "$ref": "#/entities/StudentAchievement" },
+      "description": "Personal student achievements added by Ms. Tu."
+    },
+    "/weekly_honors/{honorId}": {
+      "schema": { "$ref": "#/entities/WeeklyHonor" },
+      "description": "Weekly honored student leaderboard added by Ms. Tu."
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/DailyTask" },
+      "description": "Daily and weekly classroom to-do tasks."
+    },
+    "/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/ClassActivity" },
+      "description": "Class activity announcements and photo memories."
+    },
+    "/subject_lessons/{lessonId}": {
+      "schema": { "$ref": "#/entities/SubjectLessonDoc" },
+      "description": "Teacher-published lessons for Grade 3 subjects."
+    },
+    "/games/{gameId}": {
+      "schema": { "$ref": "#/entities/CloudGame" },
+      "description": "Cloud games added by the teacher."
+    },
+    "/quiz_results/{resultId}": {
+      "schema": { "$ref": "#/entities/QuizResult" },
+      "description": "Student quiz attempts for leaderboard display."
+    }
+  }
+}
