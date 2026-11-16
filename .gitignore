@@ -8,3 +8,4 @@ coverage/
 !.env.example
 uploaded_games/
 uploaded_lessons/
+.vercel
