@@ -193,13 +193,19 @@ export default function App() {
     for (const g of remoteGames) map.set(g.id, g);
     for (const g of localGames) {
       const existing = map.get(g.id);
-      if (
-        !existing ||
-        (!existing.playUrl && g.playUrl) ||
-        (!existing.htmlContent && g.htmlContent) ||
-        (existing.runtimeStatus !== 'vite-built' && g.runtimeStatus === 'vite-built')
-      ) {
+      if (!existing) {
         map.set(g.id, g);
+      } else {
+        map.set(g.id, {
+          ...existing,
+          playUrl: existing.playUrl || g.playUrl,
+          entryFile: existing.entryFile || g.entryFile,
+          htmlContent: existing.htmlContent || g.htmlContent,
+          runtimeStatus:
+            existing.runtimeStatus === 'vite-built'
+              ? existing.runtimeStatus
+              : g.runtimeStatus ?? existing.runtimeStatus,
+        });
       }
     }
     return Array.from(map.values());
@@ -491,7 +497,6 @@ export default function App() {
           <GamesView
             games={combinedGames}
             onAddGame={handleAddGame}
-            onRemoveGame={handleRemoveGame}
             onPlayGame={navigateToGame}
             onNavigate={navigate}
           />
@@ -552,6 +557,7 @@ export default function App() {
             onAddSubjectLesson={addSubjectLessonRemote}
             onRemoveSubjectLesson={removeSubjectLessonRemote}
             onAddGame={handleAddGame}
+            onUpdateGame={handleUpdateGame}
             onRemoveGame={handleRemoveGame}
             onClearResults={handleClearResults}
             onNavigate={navigate}

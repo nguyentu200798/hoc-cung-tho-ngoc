@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { CustomGame } from '../types/classroom';
 import {
+  applyGameMetadataEdits,
   filterGames,
   getGameLaunchMode,
   isUnbuiltViteHtml,
+  normalizeGameUrl,
   resolveGameTopic,
 } from './gameCatalog';
 
@@ -117,4 +119,54 @@ test('newly added games appear automatically in filterGames and resolve exact la
     htmlContent: '<html><body>Game</body></html>',
   });
   assert.equal(getGameLaunchMode(sampleGames[3]).kind, 'error');
+});
+
+test('normalizeGameUrl prepends https:// when protocol is missing', () => {
+  assert.equal(normalizeGameUrl('wordwall.net/play/123'), 'https://wordwall.net/play/123');
+  assert.equal(normalizeGameUrl('https://example.com/a'), 'https://example.com/a');
+  assert.equal(normalizeGameUrl('http://localhost:3000/g'), 'http://localhost:3000/g');
+  assert.equal(normalizeGameUrl('   '), '');
+});
+
+test('applyGameMetadataEdits updates metadata while preserving archive runtime fields', () => {
+  const originalZipGame: CustomGame = {
+    id: 'cloud-game-179',
+    title: 'Trò chơi cũ',
+    titleEn: 'Old Subtitle',
+    topic: 'toan',
+    imageUrl: 'https://example.com/old.png',
+    sourceType: 'zip',
+    fileName: 'math-game.zip',
+    fileSizeLabel: '1.4 MB',
+    playUrl: '/games-runtime/cloud-game-179/index.html',
+    entryFile: 'index.html',
+    runtimeStatus: 'vite-built',
+    createdAt: '2026-11-14T00:00:00.000Z',
+  };
+
+  const edited = applyGameMetadataEdits(originalZipGame, {
+    title: '  Phiêu lưu Tiếng Việt mới  ',
+    titleEn: '',
+    topic: 'tieng-viet',
+    imageUrl: '   ',
+  });
+
+  assert.equal(edited.title, 'Phiêu lưu Tiếng Việt mới');
+  assert.equal(edited.titleEn, undefined);
+  assert.equal(edited.topic, 'tieng-viet');
+  assert.equal(edited.imageUrl, undefined);
+  assert.equal(edited.playUrl, '/games-runtime/cloud-game-179/index.html');
+  assert.equal(edited.runtimeStatus, 'vite-built');
+  assert.equal(edited.fileName, 'math-game.zip');
+
+  const urlEdited = applyGameMetadataEdits(sampleGames[0], {
+    title: 'Toán lớp 3',
+    titleEn: 'Grade 3 Math',
+    topic: 'toan',
+    imageUrl: 'https://example.com/cover.png',
+    url: 'wordwall.net/resource/999',
+  });
+  assert.equal(urlEdited.url, 'https://wordwall.net/resource/999');
+  assert.equal(urlEdited.titleEn, 'Grade 3 Math');
+  assert.equal(urlEdited.imageUrl, 'https://example.com/cover.png');
 });

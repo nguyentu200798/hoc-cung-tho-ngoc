@@ -16,6 +16,7 @@ import {
   LogOut,
   Minus,
   Paperclip,
+  Pencil,
   Plus,
   ShieldCheck,
   Sparkles,
@@ -47,8 +48,10 @@ import type {
 } from '../types/classroom';
 import { processUploadedGameFile } from '../utils/gameArchive';
 import {
+  applyGameMetadataEdits,
   GAME_TOPIC_META,
   GAME_TOPIC_OPTIONS,
+  normalizeGameUrl,
   resolveGameTopic,
 } from '../utils/gameCatalog';
 import { compressImageFileToDataUrl } from '../utils/imageCompress';
@@ -103,6 +106,7 @@ interface TeacherViewProps {
   ) => Promise<void>;
   onRemoveSubjectLesson: (id: string) => Promise<void>;
   onAddGame: (game: CustomGame) => Promise<void> | void;
+  onUpdateGame: (game: CustomGame) => Promise<void> | void;
   onRemoveGame: (id: string) => Promise<void> | void;
   onClearResults: () => Promise<void> | void;
   onNavigate: (route: RouteTab) => void;
@@ -144,6 +148,7 @@ export function TeacherView({
   onAddSubjectLesson,
   onRemoveSubjectLesson,
   onAddGame,
+  onUpdateGame,
   onRemoveGame,
   onClearResults,
   onNavigate,
@@ -206,6 +211,18 @@ export function TeacherView({
   const [gameUrl, setGameUrl] = useState('');
   const [gameFile, setGameFile] = useState<File | null>(null);
   const [isAddingGame, setIsAddingGame] = useState(false);
+
+  // Edit existing game modal states
+  const [editingGame, setEditingGame] = useState<CustomGame | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editTitleEn, setEditTitleEn] = useState('');
+  const [editTopic, setEditTopic] = useState<GameTopic>('toan');
+  const [editImageUrl, setEditImageUrl] = useState('');
+  const [editSourceMode, setEditSourceMode] = useState<'file' | 'link'>('file');
+  const [editUrl, setEditUrl] = useState('');
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const [editError, setEditError] = useState('');
+  const [isSavingEditGame, setIsSavingEditGame] = useState(false);
 
   // Page management states
   const [cfgDraft, setCfgDraft] = useState<SiteConfig>(siteConfig);
@@ -719,6 +736,137 @@ export function TeacherView({
       } finally {
         setIsAddingGame(false);
       }
+    }
+  };
+
+  // Edit Existing Game Handlers
+  const openEditGameModal = (game: CustomGame) => {
+    setEditingGame(game);
+    setEditTitle(game.title);
+    setEditTitleEn(game.titleEn ?? '');
+    setEditTopic(resolveGameTopic(game));
+    setEditImageUrl(game.imageUrl ?? '');
+    setEditSourceMode(game.sourceType === 'url' ? 'link' : 'file');
+    setEditUrl(game.url ?? '');
+    setEditFile(null);
+    setEditError('');
+    setIsSavingEditGame(false);
+  };
+
+  const handleEditGameCoverUpload = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const compressed = await compressImageFileToDataUrl(file, 720, 180000);
+      setEditImageUrl(compressed);
+      setEditError('');
+    } catch {
+      setEditError('Không thể đọc ảnh minh họa vừa chọn.');
+    }
+  };
+
+  const handleSaveEditGameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingGame) return;
+    setEditError('');
+
+    if (!editTitle.trim()) {
+      setEditError('Vui lòng nhập tên trò chơi (Tiếng Việt)!');
+      return;
+    }
+
+    if (editSourceMode === 'link') {
+      const safeUrl = normalizeGameUrl(editUrl);
+      if (!safeUrl) {
+        setEditError('Vui lòng nhập đường dẫn trò chơi hợp lệ!');
+        return;
+      }
+      setIsSavingEditGame(true);
+      try {
+        const updated = applyGameMetadataEdits(
+          {
+            ...editingGame,
+            sourceType: 'url',
+            url: safeUrl,
+            playUrl: undefined,
+            entryFile: undefined,
+            runtimeStatus: undefined,
+            fileName: undefined,
+            fileSizeLabel: undefined,
+            htmlContent: undefined,
+          },
+          {
+            title: editTitle,
+            titleEn: editTitleEn,
+            topic: editTopic,
+            imageUrl: editImageUrl,
+            url: safeUrl,
+          }
+        );
+        await onUpdateGame(updated);
+        setEditingGame(null);
+        showToast(`Đã cập nhật thông tin trò chơi "${updated.title}"!`);
+      } catch {
+        setEditError('Không thể lưu thay đổi trò chơi. Vui lòng thử lại.');
+      } finally {
+        setIsSavingEditGame(false);
+      }
+      return;
+    }
+
+    if (editingGame.sourceType === 'url' && !editFile) {
+      setEditError('Vui lòng chọn file .zip hoặc .html để thay thế đường dẫn hiện tại.');
+      return;
+    }
+
+    setIsSavingEditGame(true);
+    try {
+      let updated: CustomGame;
+      let toastText = `Đã cập nhật thông tin trò chơi "${editTitle.trim()}"!`;
+
+      if (editFile) {
+        const processed = await processUploadedGameFile(editFile, editingGame.id);
+        updated = applyGameMetadataEdits(
+          {
+            ...editingGame,
+            sourceType: processed.sourceType,
+            fileName: processed.fileName,
+            fileSizeLabel: processed.fileSizeLabel,
+            playUrl: processed.playUrl,
+            entryFile: processed.entryFile,
+            runtimeStatus: processed.runtimeStatus,
+            htmlContent: processed.htmlContent,
+            url: undefined,
+          },
+          {
+            title: editTitle,
+            titleEn: editTitleEn,
+            topic: editTopic,
+            imageUrl: editImageUrl,
+          }
+        );
+        if (processed.buildNote) {
+          toastText = processed.buildNote;
+        }
+      } else {
+        updated = applyGameMetadataEdits(editingGame, {
+          title: editTitle,
+          titleEn: editTitleEn,
+          topic: editTopic,
+          imageUrl: editImageUrl,
+        });
+      }
+
+      await onUpdateGame(updated);
+      setEditingGame(null);
+      showToast(toastText);
+    } catch (err) {
+      setEditError(
+        err instanceof Error
+          ? err.message
+          : 'Không thể cập nhật tệp trò chơi vừa chọn.'
+      );
+    } finally {
+      setIsSavingEditGame(false);
     }
   };
 
@@ -1947,31 +2095,65 @@ export function TeacherView({
                 Kho game hiện đang trống.
               </p>
             ) : (
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-3 space-y-2.5">
                 {games.map((g) => (
                   <li
                     key={g.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl bg-white/80 px-4 py-3 text-sm font-bold text-[#4f1d4b]"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/85 px-4 py-3 text-sm font-bold text-[#4f1d4b] shadow-xs"
                   >
-                    <div>
-                      <p>
-                        🎮 {g.title}{' '}
-                        <span className="ml-1 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-extrabold text-sky-800">
-                          {GAME_TOPIC_META[resolveGameTopic(g)].label}
-                        </span>
-                      </p>
-                      <p className="text-xs font-semibold text-[#6b4869]">
-                        {g.sourceType.toUpperCase()} {g.url ? `· ${g.url}` : g.fileName ? `· ${g.fileName}` : ''}
-                      </p>
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      {g.imageUrl ? (
+                        <img
+                          src={g.imageUrl}
+                          alt={g.title}
+                          referrerPolicy="no-referrer"
+                          className="h-12 w-16 shrink-0 rounded-xl border border-purple-100 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-16 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600 ring-1 ring-sky-100">
+                          <Gamepad2 className="h-5 w-5" />
+                        </div>
+                      )}
+
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="truncate font-extrabold text-[#4f1d4b]">
+                            {g.title}
+                          </span>
+                          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-extrabold text-sky-800">
+                            {GAME_TOPIC_META[resolveGameTopic(g)].label}
+                          </span>
+                        </div>
+                        {g.titleEn && (
+                          <p className="truncate text-xs font-bold text-[#7d26c9]">
+                            {g.titleEn}
+                          </p>
+                        )}
+                        <p className="truncate text-xs font-semibold text-[#6b4869]">
+                          {g.sourceType.toUpperCase()} {g.url ? `· ${g.url}` : g.fileName ? `· ${g.fileName}` : ''}
+                        </p>
+                      </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => void onRemoveGame(g.id)}
-                      aria-label={`Xóa trò chơi ${g.title}`}
-                      className="rounded-full bg-rose-50 p-2 text-rose-700 hover:bg-rose-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditGameModal(g)}
+                        aria-label={`Sửa trò chơi ${g.title}`}
+                        className="inline-flex min-h-[36px] cursor-pointer items-center gap-1.5 rounded-full bg-purple-100 px-3.5 py-1.5 text-xs font-extrabold text-[#5b2358] transition-colors hover:bg-purple-200"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span>Sửa</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void onRemoveGame(g.id)}
+                        aria-label={`Xóa trò chơi ${g.title}`}
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-rose-50 text-rose-700 transition-colors hover:bg-rose-100"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -2090,6 +2272,263 @@ export function TeacherView({
             </div>
           </form>
         </section>
+      )}
+
+      {/* Edit Game Modal */}
+      {editingGame && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-game-modal-title"
+          className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-[#2a122e]/45 p-4 backdrop-blur-sm"
+        >
+          <div className="max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-[2rem] border-2 border-white bg-white p-6 shadow-2xl md:p-7">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2
+                  id="edit-game-modal-title"
+                  className="font-display text-2xl font-extrabold text-[#4f1d4b]"
+                >
+                  Sửa thông tin trò chơi
+                </h2>
+                <p className="text-xs font-extrabold text-[#7d26c9]">
+                  Edit Game Details · {editingGame.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Đóng hộp thoại sửa trò chơi"
+                onClick={() => setEditingGame(null)}
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-purple-50 text-[#5b2358] hover:bg-purple-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditGameSubmit} className="mt-5 space-y-4">
+              <div>
+                <label
+                  htmlFor="edit-game-title"
+                  className="block text-xs font-extrabold text-[#4f1d4b]"
+                >
+                  Tên trò chơi (Tiếng Việt) *
+                </label>
+                <input
+                  id="edit-game-title"
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Ví dụ: Đuổi hình bắt chữ 3.17"
+                  className="mt-1 w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2 text-sm font-bold text-[#4f1d4b]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="edit-game-topic"
+                    className="block text-xs font-extrabold text-[#4f1d4b]"
+                  >
+                    Chủ đề trò chơi / Topic
+                  </label>
+                  <select
+                    id="edit-game-topic"
+                    value={editTopic}
+                    onChange={(e) => setEditTopic(e.target.value as GameTopic)}
+                    className="mt-1 w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2 text-sm font-bold text-[#4f1d4b]"
+                  >
+                    {GAME_TOPIC_OPTIONS.map((t) => (
+                      <option key={t} value={t}>
+                        {GAME_TOPIC_META[t].label} ({GAME_TOPIC_META[t].labelEn})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="edit-game-title-en"
+                    className="block text-xs font-extrabold text-[#4f1d4b]"
+                  >
+                    English Subtitle (tùy chọn)
+                  </label>
+                  <input
+                    id="edit-game-title-en"
+                    type="text"
+                    value={editTitleEn}
+                    onChange={(e) => setEditTitleEn(e.target.value)}
+                    placeholder="e.g. Math Adventure"
+                    className="mt-1 w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2 text-sm font-bold text-[#4f1d4b]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-game-image-url"
+                  className="block text-xs font-extrabold text-[#4f1d4b]"
+                >
+                  Ảnh minh họa (tùy chọn — để trống để dùng ảnh chủ đề mặc định)
+                </label>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <input
+                    id="edit-game-image-url"
+                    type="text"
+                    value={editImageUrl}
+                    onChange={(e) => setEditImageUrl(e.target.value)}
+                    placeholder="Dán link ảnh hoặc bấm Chọn ảnh..."
+                    className="min-w-[180px] flex-1 rounded-xl border border-purple-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#4f1d4b]"
+                  />
+                  <label className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-xl bg-purple-100 px-3 py-2 text-xs font-extrabold text-[#4f1d4b] hover:bg-purple-200">
+                    <Camera className="h-3.5 w-3.5" />
+                    <span>Chọn ảnh</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        void handleEditGameCoverUpload(e.target.files?.[0] ?? null)
+                      }
+                      className="sr-only"
+                    />
+                  </label>
+                  {editImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditImageUrl('')}
+                      className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-extrabold text-rose-700 hover:bg-rose-100"
+                    >
+                      Xóa ảnh
+                    </button>
+                  )}
+                </div>
+                {editImageUrl && (
+                  <div className="mt-2 flex items-center gap-3 rounded-xl bg-purple-50/70 p-2">
+                    <img
+                      src={editImageUrl}
+                      alt="Xem trước ảnh trò chơi"
+                      referrerPolicy="no-referrer"
+                      className="h-14 w-20 rounded-lg border border-white object-cover shadow-xs"
+                    />
+                    <span className="text-xs font-semibold text-[#6b4869]">
+                      Ảnh minh họa hiện tại sẽ hiển thị trên thẻ Kho game.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-purple-100 bg-purple-50/60 p-3.5">
+                <span className="block text-xs font-extrabold text-[#4f1d4b]">
+                  Nguồn trò chơi / Game Source
+                </span>
+                <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl bg-white p-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditSourceMode('file');
+                      setEditError('');
+                    }}
+                    className={`rounded-lg py-1.5 text-xs font-extrabold ${
+                      editSourceMode === 'file'
+                        ? 'bg-purple-100 text-[#4f1d4b]'
+                        : 'text-[#6b4869]'
+                    }`}
+                  >
+                    File ZIP / HTML
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditSourceMode('link');
+                      setEditError('');
+                    }}
+                    className={`rounded-lg py-1.5 text-xs font-extrabold ${
+                      editSourceMode === 'link'
+                        ? 'bg-purple-100 text-[#4f1d4b]'
+                        : 'text-[#6b4869]'
+                    }`}
+                  >
+                    Đường dẫn URL
+                  </button>
+                </div>
+
+                {editSourceMode === 'file' ? (
+                  <div className="mt-3 space-y-2">
+                    {editingGame.sourceType !== 'url' && (
+                      <p className="text-xs font-semibold text-[#6b4869]">
+                        Tệp hiện tại:{' '}
+                        <span className="font-extrabold text-[#4f1d4b]">
+                          {editingGame.fileName ?? editingGame.entryFile ?? 'HTML5'}
+                        </span>
+                        {editingGame.fileSizeLabel ? ` (${editingGame.fileSizeLabel})` : ''}
+                        {' — giữ nguyên nếu không chọn tệp mới.'}
+                      </p>
+                    )}
+                    <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-purple-300 bg-white px-3.5 py-2.5 text-xs font-extrabold text-[#4f1d4b] hover:bg-purple-50/60">
+                      <Upload className="h-4 w-4 text-[#7d26c9]" />
+                      <span>
+                        {editFile
+                          ? `Thay bằng: ${editFile.name}`
+                          : 'Tải lên file .zip / .html mới (tùy chọn)'}
+                      </span>
+                      <input
+                        type="file"
+                        accept=".zip,.html,.htm"
+                        onChange={(e) => {
+                          setEditFile(e.target.files?.[0] ?? null);
+                          setEditError('');
+                        }}
+                        className="sr-only"
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="mt-3">
+                    <label
+                      htmlFor="edit-game-url"
+                      className="block text-xs font-extrabold text-[#4f1d4b]"
+                    >
+                      Đường dẫn trò chơi / Game URL *
+                    </label>
+                    <input
+                      id="edit-game-url"
+                      type="text"
+                      value={editUrl}
+                      onChange={(e) => setEditUrl(e.target.value)}
+                      placeholder="https://wordwall.net/..."
+                      className="mt-1 w-full rounded-xl border border-purple-200 bg-white px-3.5 py-2 text-sm font-bold text-[#4f1d4b]"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {editError && (
+                <p
+                  role="alert"
+                  className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-bold text-rose-700"
+                >
+                  {editError}
+                </p>
+              )}
+
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingGame(null)}
+                  className="min-h-[42px] cursor-pointer rounded-full bg-purple-50 px-5 py-2 text-xs font-extrabold text-[#5b2358] hover:bg-purple-100"
+                >
+                  Hủy / Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEditGame}
+                  className="btn-violet min-h-[42px] cursor-pointer rounded-full px-6 py-2 text-xs font-extrabold disabled:opacity-60"
+                >
+                  {isSavingEditGame ? 'Đang lưu thay đổi...' : 'Lưu thay đổi'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

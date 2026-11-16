@@ -1,6 +1,7 @@
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDocs,
   onSnapshot,
@@ -801,19 +802,33 @@ export async function updateGameRemote(game: CustomGame): Promise<void> {
       title: clampStr(game.title, 120, 'Trò chơi Thỏ Mây'),
       sourceType: game.sourceType,
       updatedAt: serverTimestamp(),
+      titleEn: game.titleEn?.trim() ? clampStr(game.titleEn, 120) : deleteField(),
+      topic:
+        game.topic && isValidGameTopic(game.topic)
+          ? game.topic
+          : deleteField(),
+      imageUrl: game.imageUrl?.trim()
+        ? clampStr(game.imageUrl, 250000)
+        : deleteField(),
+      url: game.url?.trim() ? clampStr(game.url, 1000) : deleteField(),
+      playUrl: game.playUrl?.trim() ? clampStr(game.playUrl, 500) : deleteField(),
+      entryFile: game.entryFile?.trim()
+        ? clampStr(game.entryFile, 200)
+        : deleteField(),
+      runtimeStatus: game.runtimeStatus
+        ? clampStr(game.runtimeStatus, 40)
+        : deleteField(),
+      fileName: game.fileName?.trim()
+        ? clampStr(game.fileName, 200)
+        : deleteField(),
+      fileSizeLabel: game.fileSizeLabel?.trim()
+        ? clampStr(game.fileSizeLabel, 40)
+        : deleteField(),
+      htmlContent:
+        game.htmlContent && game.htmlContent.length <= 750000
+          ? game.htmlContent
+          : deleteField(),
     };
-    if (game.titleEn) patch.titleEn = clampStr(game.titleEn, 120);
-    if (game.topic && isValidGameTopic(game.topic)) patch.topic = game.topic;
-    if (game.imageUrl) patch.imageUrl = clampStr(game.imageUrl, 250000);
-    if (game.url) patch.url = clampStr(game.url, 1000);
-    if (game.playUrl) patch.playUrl = clampStr(game.playUrl, 500);
-    if (game.entryFile) patch.entryFile = clampStr(game.entryFile, 200);
-    if (game.runtimeStatus) patch.runtimeStatus = clampStr(game.runtimeStatus, 40);
-    if (game.fileName) patch.fileName = clampStr(game.fileName, 200);
-    if (game.fileSizeLabel) patch.fileSizeLabel = clampStr(game.fileSizeLabel, 40);
-    if (game.htmlContent && game.htmlContent.length <= 750000) {
-      patch.htmlContent = game.htmlContent;
-    }
     await updateDoc(doc(db, 'games', safeId), patch);
   } catch (err) {
     handleFirestoreError(err, OperationType.UPDATE, path);

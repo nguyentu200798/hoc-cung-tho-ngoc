@@ -194,3 +194,39 @@ export function getGameLaunchMode(game: CustomGame): GameLaunchMode {
     fileSizeLabel: game.fileSizeLabel,
   };
 }
+
+export interface GameMetadataDraft {
+  title: string;
+  titleEn?: string;
+  topic: GameTopic;
+  imageUrl?: string;
+  url?: string;
+}
+
+export function normalizeGameUrl(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+export function applyGameMetadataEdits(
+  existing: CustomGame,
+  draft: GameMetadataDraft
+): CustomGame {
+  const cleanTitle = draft.title.trim() || existing.title;
+  const cleanTitleEn = draft.titleEn?.trim();
+  const cleanImageUrl = draft.imageUrl?.trim();
+  const cleanUrl =
+    existing.sourceType === 'url' && draft.url !== undefined
+      ? normalizeGameUrl(draft.url) || existing.url
+      : existing.url;
+
+  return {
+    ...existing,
+    title: cleanTitle,
+    titleEn: cleanTitleEn ? cleanTitleEn : undefined,
+    topic: draft.topic,
+    imageUrl: cleanImageUrl ? cleanImageUrl : undefined,
+    url: cleanUrl,
+  };
+}

@@ -11,7 +11,6 @@ import {
   Plus,
   Search,
   Sparkles,
-  Trash2,
   Upload,
   X,
   FileArchive,
@@ -33,7 +32,6 @@ import { GameCoverArtwork } from './GameCoverArtwork';
 interface GamesViewProps {
   games: CustomGame[];
   onAddGame: (game: CustomGame) => Promise<void> | void;
-  onRemoveGame: (id: string) => void;
   onPlayGame: (gameId: string) => void;
   onNavigate: (route: RouteTab) => void;
 }
@@ -49,7 +47,6 @@ const TOPIC_TAB_ICONS = {
 export function GamesView({
   games,
   onAddGame,
-  onRemoveGame,
   onPlayGame,
   onNavigate,
 }: GamesViewProps) {
@@ -496,15 +493,6 @@ export function GamesView({
                     key={game.id}
                     className="group relative flex flex-col rounded-[1.85rem] border-2 border-white bg-white p-3.5 shadow-[0_14px_30px_rgba(33,115,176,0.14)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_38px_rgba(33,115,176,0.2)]"
                   >
-                    <button
-                      type="button"
-                      aria-label={`Xóa trò chơi ${game.title}`}
-                      onClick={() => onRemoveGame(game.id)}
-                      className="absolute top-5 right-5 z-20 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/95 text-rose-600 shadow-sm ring-1 ring-rose-100 transition-colors hover:bg-rose-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-
                     <button
                       type="button"
                       onClick={() => onPlayGame(game.id)}
