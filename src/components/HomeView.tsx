@@ -41,9 +41,9 @@ const DOOR_CARDS: DoorCard[] = [
 
 export function HomeView({ siteConfig, onNavigate }: HomeViewProps) {
   return (
-    <div className="mx-auto max-w-[1220px] px-4 pt-4 pb-10 md:px-8 md:pt-6">
+    <div className="mx-auto max-w-[1220px] px-3.5 pt-4 pb-10 sm:px-5 md:px-8 md:pt-6">
       {/* Main Centerpiece Hero Stage */}
-      <section className="glass-panel relative flex flex-col items-center justify-center overflow-hidden rounded-[2.5rem] px-5 py-7 text-center md:px-10 md:py-10">
+      <section className="glass-panel relative flex flex-col items-center justify-center overflow-hidden rounded-[2rem] px-4 py-6 text-center sm:rounded-[2.5rem] sm:px-6 md:px-10 md:py-10">
         {/* Soft translucent ambient glow orbs */}
         <div
           aria-hidden="true"
@@ -64,7 +64,7 @@ export function HomeView({ siteConfig, onNavigate }: HomeViewProps) {
             <div className="relative flex shrink-0 items-center justify-center">
               <span
                 aria-hidden="true"
-                className="animate-sparkle absolute -top-1 -left-5 text-xl text-amber-400"
+                className="animate-sparkle absolute -top-1 -left-4 text-xl text-amber-400"
               >
                 ✦
               </span>
@@ -78,7 +78,7 @@ export function HomeView({ siteConfig, onNavigate }: HomeViewProps) {
                 src={ASSETS.thoMayMascot}
                 alt="Linh vật Thỏ Mây nhảy nhót vui vẻ"
                 referrerPolicy="no-referrer"
-                className="animate-tho-may-dance sticker-shadow h-32 w-auto object-contain sm:h-40 md:h-44"
+                className="animate-tho-may-dance sticker-shadow h-28 w-auto object-contain sm:h-36 md:h-44"
               />
             </div>
 
@@ -86,29 +86,29 @@ export function HomeView({ siteConfig, onNavigate }: HomeViewProps) {
               type="button"
               onClick={() => onNavigate('home')}
               aria-label="Thế Giới Học Tập của Thỏ Mây - Tho May's Learning World"
-              className="transition-transform duration-200 hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-700"
+              className="max-w-full cursor-pointer transition-transform duration-200 hover:scale-[1.03] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-purple-700"
             >
               <img
                 src={ASSETS.thoMayLogo}
                 alt="Thế Giới Học Tập của Thỏ Mây - Tho May's Learning World"
                 referrerPolicy="no-referrer"
-                className="sticker-shadow mx-auto max-h-36 w-auto object-contain sm:max-h-44 md:max-h-52"
+                className="sticker-shadow mx-auto max-h-32 max-w-full w-auto object-contain sm:max-h-40 md:max-h-52"
               />
             </button>
           </div>
 
           {/* Bilingual Slogan Ribbon */}
-          <div className="mt-2 max-w-2xl">
+          <div className="mt-2 max-w-full sm:max-w-2xl">
             <img
               src={ASSETS.sloganBanner}
               alt="Học cùng Thỏ Mây và cô Tú – Mỗi ngày một niềm vui! / Learn with Tho May and Ms. Tu – A New Joy Every Day!"
               referrerPolicy="no-referrer"
-              className="sticker-shadow mx-auto max-h-14 w-auto object-contain sm:max-h-16 md:max-h-20"
+              className="sticker-shadow mx-auto max-h-12 max-w-full w-auto object-contain sm:max-h-16 md:max-h-20"
             />
           </div>
 
           {/* Balanced Sub-headline Scaled Proportionately Below Slogan */}
-          <div className="mt-3 max-w-2xl">
+          <div className="mt-3 max-w-2xl px-1">
             <h1 className="font-display text-lg font-extrabold tracking-tight text-[#4f1d4b] sm:text-xl md:text-[22px]">
               {siteConfig.heroHeadline}
             </h1>
@@ -119,7 +119,7 @@ export function HomeView({ siteConfig, onNavigate }: HomeViewProps) {
 
           {/* Centered, Italic, Compact Welcome Note */}
           {siteConfig.announcement && (
-            <div className="mt-3.5 w-full max-w-2xl rounded-2xl border border-white/85 bg-white/55 px-5 py-2.5 text-center shadow-xs backdrop-blur-md">
+            <div className="mt-3.5 w-full max-w-2xl rounded-2xl border border-white/85 bg-white/55 px-4 py-2.5 text-center shadow-xs backdrop-blur-md sm:px-5">
               <p className="text-xs leading-relaxed font-semibold text-[#5a2a56] italic sm:text-[13px]">
                 {siteConfig.announcement}
               </p>
@@ -134,7 +134,7 @@ export function HomeView({ siteConfig, onNavigate }: HomeViewProps) {
           {/* 3 Doorway Sticker Buttons with Embedded Guidance Underneath */}
           <div
             aria-label="Các cánh cửa học tập / Learning Doorways"
-            className="mt-6 grid w-full grid-cols-1 gap-5 md:grid-cols-3"
+            className="mt-6 grid w-full grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3"
           >
             {DOOR_CARDS.map((card) => (
               <button
@@ -142,14 +142,14 @@ export function HomeView({ siteConfig, onNavigate }: HomeViewProps) {
                 type="button"
                 onClick={() => onNavigate(card.id)}
                 aria-label={card.stickerAlt}
-                className="glass-card group flex flex-col items-center justify-start rounded-[2rem] px-5 py-6 text-center transition-all duration-200 hover:-translate-y-1.5 hover:bg-white/80 hover:shadow-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700"
+                className="glass-card group flex min-h-[140px] cursor-pointer flex-col items-center justify-start rounded-[1.75rem] px-4 py-5 text-center transition-all duration-200 hover:-translate-y-1.5 hover:bg-white/80 hover:shadow-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700 sm:rounded-[2rem] sm:px-5 sm:py-6"
               >
-                <div className="flex h-28 w-full items-center justify-center sm:h-32">
+                <div className="flex h-24 w-full items-center justify-center sm:h-28 lg:h-32">
                   <img
                     src={card.stickerUrl}
                     alt={card.stickerAlt}
                     referrerPolicy="no-referrer"
-                    className="sticker-shadow max-h-28 max-w-full w-auto object-contain transition-transform duration-200 group-hover:scale-105 sm:max-h-32"
+                    className="sticker-shadow max-h-24 max-w-full w-auto object-contain transition-transform duration-200 group-hover:scale-105 sm:max-h-28 lg:max-h-32"
                   />
                 </div>
 

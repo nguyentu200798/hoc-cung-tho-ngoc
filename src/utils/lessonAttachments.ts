@@ -64,6 +64,16 @@ export function buildLessonDownloadUrl(url: string): string {
   return url;
 }
 
+export function buildLessonDocPreviewUrl(url: string): string | null {
+  if (!url) return null;
+  const cleanUrl = url.split('?')[0];
+  if (!cleanUrl.startsWith('/lesson-files/')) return null;
+  const rest = cleanUrl.slice('/lesson-files/'.length);
+  const slashIdx = rest.indexOf('/');
+  if (slashIdx <= 0 || slashIdx === rest.length - 1) return null;
+  return `/api/lessons/doc-preview/${rest}`;
+}
+
 export function getAttachmentKindLabel(kind: LessonAttachmentKind): {
   short: string;
   label: string;

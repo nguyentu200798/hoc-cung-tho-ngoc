@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ASSETS, SUBJECTS_DATA } from '../data/classroomSeed';
-import { TEACHER_ALLOWED_EMAIL } from '../lib/firebase';
+import { TEACHER_ALLOWED_EMAIL, type GoogleSignInMode } from '../lib/firebase';
 import type {
   ActivityMemory,
   CustomGame,
@@ -68,7 +68,7 @@ interface TeacherViewProps {
   teacherUser: User | null;
   isAuthorized: boolean;
   authError: string;
-  onGoogleLogin: () => Promise<void>;
+  onGoogleLogin: (mode?: GoogleSignInMode) => Promise<void>;
   onLogout: () => Promise<void>;
   siteConfig: SiteConfig;
   onSaveSiteConfig: (cfg: SiteConfig) => Promise<void>;
@@ -249,10 +249,10 @@ export function TeacherView({
     }, 4500);
   };
 
-  const handleSignInClick = async () => {
+  const handleSignInClick = async (mode: GoogleSignInMode = 'auto') => {
     setIsSigningIn(true);
     try {
-      await onGoogleLogin();
+      await onGoogleLogin(mode);
     } finally {
       setIsSigningIn(false);
     }
@@ -262,7 +262,7 @@ export function TeacherView({
     setIsSigningIn(true);
     try {
       await onLogout();
-      await onGoogleLogin();
+      await onGoogleLogin('auto');
     } finally {
       setIsSigningIn(false);
     }
@@ -373,25 +373,40 @@ export function TeacherView({
                 </button>
               </>
             ) : (
-              <button
-                type="button"
-                disabled={isSigningIn}
-                onClick={handleSignInClick}
-                className="btn-violet rounded-2xl px-7 py-3 text-center leading-tight transition-all disabled:opacity-60"
-              >
-                <span className="block text-sm font-extrabold">
-                  {isSigningIn ? 'Đang xác thực Google...' : 'Đăng nhập bằng Gmail cô Tú →'}
-                </span>
-                <span className="block text-[11px] font-bold opacity-90">
-                  Sign in with Google ({TEACHER_ALLOWED_EMAIL})
-                </span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  disabled={isSigningIn}
+                  onClick={() => void handleSignInClick('auto')}
+                  className="btn-violet cursor-pointer rounded-2xl px-7 py-3 text-center leading-tight transition-all disabled:opacity-60"
+                >
+                  <span className="block text-sm font-extrabold">
+                    {isSigningIn ? 'Đang xác thực Google...' : 'Đăng nhập bằng Gmail cô Tú →'}
+                  </span>
+                  <span className="block text-[11px] font-bold opacity-90">
+                    Sign in with Google ({TEACHER_ALLOWED_EMAIL})
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isSigningIn}
+                  onClick={() => void handleSignInClick('redirect')}
+                  className="cursor-pointer rounded-2xl border border-purple-200 bg-white/90 px-4 py-3 text-left leading-tight text-[#5b2358] transition-colors hover:bg-white disabled:opacity-60"
+                >
+                  <span className="block text-xs font-extrabold">
+                    Đăng nhập bằng chuyển hướng
+                  </span>
+                  <span className="block text-[10px] font-semibold opacity-80">
+                    Dùng khi Safari / điện thoại chặn pop-up
+                  </span>
+                </button>
+              </>
             )}
 
             <button
               type="button"
               onClick={() => onNavigate('home')}
-              className="rounded-2xl bg-white/80 px-5 py-3 text-sm font-bold text-[#5b2358] hover:bg-white"
+              className="cursor-pointer rounded-2xl bg-white/80 px-5 py-3 text-sm font-bold text-[#5b2358] hover:bg-white"
             >
               Về trang chủ / Homepage
             </button>

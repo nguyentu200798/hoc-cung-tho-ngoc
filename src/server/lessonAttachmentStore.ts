@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import mammoth from 'mammoth';
+import WordExtractor from 'word-extractor';
 import type { LessonAttachment, LessonAttachmentKind } from '../types/classroom';
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -111,4 +113,39 @@ export async function storeUploadedLessonAttachment(params: {
     sizeLabel: formatBytes(params.buffer.byteLength),
     url: `/lesson-files/${attachmentId}/${encodeURIComponent(meta.storageName)}`,
   };
+}
+
+export interface WordDocumentPreviewResult {
+  kind: 'docx' | 'doc';
+  html?: string;
+  paragraphs?: string[];
+}
+
+export async function extractWordDocumentPreview(
+  targetFile: string
+): Promise<WordDocumentPreviewResult> {
+  const ext = path.extname(targetFile).toLowerCase();
+  if (ext === '.docx') {
+    const result = await mammoth.convertToHtml({ path: targetFile });
+    return {
+      kind: 'docx',
+      html: result.value,
+    };
+  }
+
+  if (ext === '.doc') {
+    const extractor = new WordExtractor();
+    const doc = await extractor.extract(targetFile);
+    const body = doc.getBody() || '';
+    const paragraphs = body
+      .split(/\r?\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    return {
+      kind: 'doc',
+      paragraphs,
+    };
+  }
+
+  throw new Error('Chỉ hỗ trợ xem trước trực tiếp tệp Word (.docx, .doc).');
 }

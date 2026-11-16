@@ -3,7 +3,9 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import JSZip from 'jszip';
 import {
+  extractWordDocumentPreview,
   resolveMimeTypeForServedFile,
   sanitizeStorageFileName,
   storeUploadedLessonAttachment,
@@ -58,6 +60,45 @@ test('storeUploadedLessonAttachment stores pdf, docx, doc, and image files and r
         }),
       /chưa được hỗ trợ/
     );
+  } finally {
+    await fs.rm(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('extractWordDocumentPreview converts .docx files into readable HTML content', async () => {
+  const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'thomay-docx-preview-'));
+  try {
+    const zip = new JSZip();
+    zip.file(
+      '[Content_Types].xml',
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+        '</Types>'
+    );
+    zip.file(
+      '_rels/.rels',
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+        '</Relationships>'
+    );
+    zip.file(
+      'word/document.xml',
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+        '<w:body><w:p><w:r><w:t>Bài tập Toán lớp 3.17: Tính 7 x 8 = 56</w:t></w:r></w:p></w:body>' +
+        '</w:document>'
+    );
+
+    const docxPath = path.join(tmpRoot, 'phieu-toan.docx');
+    await fs.writeFile(docxPath, await zip.generateAsync({ type: 'nodebuffer' }));
+
+    const preview = await extractWordDocumentPreview(docxPath);
+    assert.equal(preview.kind, 'docx');
+    assert.ok(preview.html?.includes('Bài tập Toán lớp 3.17: Tính 7 x 8 = 56'));
   } finally {
     await fs.rm(tmpRoot, { recursive: true, force: true });
   }

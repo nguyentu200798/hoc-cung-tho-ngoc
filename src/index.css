@@ -14,11 +14,14 @@
     scroll-behavior: smooth;
     font-family: var(--font-sans);
     color: var(--plum-ink);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     margin: 0;
     min-height: 100vh;
+    min-height: 100dvh;
     background-color: #f8cbe6;
     background-image:
       radial-gradient(at 15% 10%, rgba(255, 245, 252, 0.92) 0px, transparent 42%),
@@ -26,14 +29,93 @@
       radial-gradient(at 85% 65%, rgba(233, 196, 251, 0.88) 0px, transparent 42%),
       radial-gradient(at 25% 88%, rgba(255, 214, 238, 0.75) 0px, transparent 45%),
       linear-gradient(145deg, #ffd8ec 0%, #f5c4e6 50%, #e1c0f8 100%);
-    background-attachment: fixed;
+    background-attachment: scroll;
     color: var(--plum-ink);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    body {
+      background-attachment: fixed;
+    }
+  }
+
+  button,
+  a,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
   }
 
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
   }
+}
+
+.lesson-doc-prose h1 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #4f1d4b;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.lesson-doc-prose h2 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #5b2358;
+  margin-top: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+.lesson-doc-prose h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #6b4869;
+  margin-top: 0.6rem;
+  margin-bottom: 0.35rem;
+}
+.lesson-doc-prose p {
+  margin-top: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+.lesson-doc-prose ul,
+.lesson-doc-prose ol {
+  margin: 0.5rem 0;
+  padding-left: 1.35rem;
+}
+.lesson-doc-prose ul {
+  list-style-type: disc;
+}
+.lesson-doc-prose ol {
+  list-style-type: decimal;
+}
+.lesson-doc-prose li {
+  margin: 0.25rem 0;
+}
+.lesson-doc-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+}
+.lesson-doc-prose th,
+.lesson-doc-prose td {
+  border: 1px solid #e9d5ff;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+.lesson-doc-prose th {
+  background-color: #faf5ff;
+  font-weight: 800;
+}
+.lesson-doc-prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 0.5rem auto;
 }
 
 .glass-card {

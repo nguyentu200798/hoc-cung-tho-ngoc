@@ -262,7 +262,7 @@ export function GamePlayView({
             src={launchMode.url}
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-modals"
             allow="fullscreen; autoplay"
-            className="h-[76vh] min-h-[540px] w-full border-0 bg-white"
+            className="h-[68dvh] min-h-[340px] w-full border-0 bg-white sm:h-[74dvh] sm:min-h-[480px] lg:h-[78dvh]"
           />
         ) : launchMode.kind === 'html' ? (
           <iframe
@@ -270,10 +270,10 @@ export function GamePlayView({
             srcDoc={launchMode.htmlContent}
             sandbox="allow-scripts allow-forms allow-popups allow-pointer-lock allow-modals"
             allow="fullscreen; autoplay"
-            className="h-[76vh] min-h-[540px] w-full border-0 bg-white"
+            className="h-[68dvh] min-h-[340px] w-full border-0 bg-white sm:h-[74dvh] sm:min-h-[480px] lg:h-[78dvh]"
           />
         ) : launchMode.kind === 'runtime' && runtimeState === 'checking' ? (
-          <div className="flex h-[65vh] min-h-[420px] flex-col items-center justify-center bg-[#f4faff] p-8 text-center">
+          <div className="flex h-[56dvh] min-h-[320px] flex-col items-center justify-center bg-[#f4faff] p-8 text-center sm:h-[65dvh]">
             <RefreshCw className="h-10 w-10 animate-spin text-[#2684d4]" />
             <p className="font-display mt-4 text-xl font-extrabold text-[#164a7e]">
               Đang khởi chạy trò chơi...
@@ -288,7 +288,7 @@ export function GamePlayView({
             src={launchMode.playUrl}
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock allow-modals"
             allow="fullscreen; autoplay"
-            className="h-[76vh] min-h-[540px] w-full border-0 bg-white"
+            className="h-[68dvh] min-h-[340px] w-full border-0 bg-white sm:h-[74dvh] sm:min-h-[480px] lg:h-[78dvh]"
           />
         ) : launchMode.kind === 'runtime' &&
           runtimeState === 'use-fallback-html' &&
@@ -298,7 +298,7 @@ export function GamePlayView({
             srcDoc={launchMode.fallbackHtml}
             sandbox="allow-scripts allow-forms allow-popups allow-pointer-lock allow-modals"
             allow="fullscreen; autoplay"
-            className="h-[76vh] min-h-[540px] w-full border-0 bg-white"
+            className="h-[68dvh] min-h-[340px] w-full border-0 bg-white sm:h-[74dvh] sm:min-h-[480px] lg:h-[78dvh]"
           />
         ) : (
           /* Clear Error / Unbuilt Source Repair Screen */

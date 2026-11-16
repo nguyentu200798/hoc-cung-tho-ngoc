@@ -3,10 +3,6 @@ import {
   BookOpen,
   CheckCircle2,
   Download,
-  ExternalLink,
-  Eye,
-  FileText,
-  Image as ImageIcon,
   Paperclip,
   RotateCw,
   X,
@@ -20,10 +16,11 @@ import type {
   SubjectItem,
   SubjectLesson,
 } from '../types/classroom';
+import { buildLessonDownloadUrl } from '../utils/lessonAttachments';
 import {
-  buildLessonDownloadUrl,
-  getAttachmentKindLabel,
-} from '../utils/lessonAttachments';
+  InlineDocumentAttachmentCard,
+  InlineImageAttachmentCard,
+} from './LessonAttachmentViewer';
 
 interface StudyViewProps {
   onNavigate: (route: RouteTab) => void;
@@ -56,23 +53,18 @@ function SubjectDetail({
   onStartPractice: () => void;
 }) {
   const [flippedMap, setFlippedMap] = useState<Record<string, boolean>>({});
-  const [openPdfMap, setOpenPdfMap] = useState<Record<string, boolean>>({});
   const [lightboxImage, setLightboxImage] = useState<LessonAttachment | null>(null);
 
   const toggleCard = (key: string) => {
     setFlippedMap((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const togglePdfPreview = (attKey: string) => {
-    setOpenPdfMap((prev) => ({ ...prev, [attKey]: !prev[attKey] }));
-  };
-
   return (
-    <div className="mx-auto max-w-[1040px] px-5 pt-7 pb-12 md:px-8">
+    <div className="mx-auto max-w-[1040px] px-3.5 pt-6 pb-12 sm:px-5 md:px-8">
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-sm font-extrabold text-[#62335f] transition-colors hover:text-[#4f1d4b]"
+        className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-full bg-white/75 px-4 py-1.5 text-sm font-extrabold text-[#62335f] shadow-xs transition-colors hover:bg-white hover:text-[#4f1d4b]"
       >
         <ArrowLeft className="h-4 w-4" />
         <span>Quay lại / Back</span>
@@ -85,7 +77,7 @@ function SubjectDetail({
               src={subject.stickerImage}
               alt={`${subject.name} - ${subject.englishLabel}`}
               referrerPolicy="no-referrer"
-              className="sticker-shadow h-20 w-auto object-contain sm:h-24"
+              className="sticker-shadow h-16 w-auto object-contain sm:h-20 md:h-24"
             />
           ) : (
             <div
@@ -106,7 +98,7 @@ function SubjectDetail({
           <button
             type="button"
             onClick={onStartPractice}
-            className="btn-violet rounded-2xl px-6 py-2.5 text-center leading-tight whitespace-nowrap transition-all"
+            className="btn-violet min-h-[44px] cursor-pointer rounded-2xl px-6 py-2.5 text-center leading-tight whitespace-nowrap transition-all"
           >
             <span className="block text-sm font-extrabold">Bắt đầu ôn tập Toán →</span>
             <span className="block text-[11px] font-bold opacity-90">Start Math Practice</span>
@@ -114,7 +106,7 @@ function SubjectDetail({
         )}
       </div>
 
-      <div className="mt-7 space-y-6">
+      <div className="mt-6 space-y-6">
         {subject.lessons.map((lesson) => {
           const imageAttachments = (lesson.attachments ?? []).filter(
             (a) => a.kind === 'image'
@@ -124,11 +116,14 @@ function SubjectDetail({
           );
 
           return (
-            <section key={lesson.id} className="glass-panel rounded-3xl p-6 md:p-7">
+            <section
+              key={lesson.id}
+              className="glass-panel rounded-3xl p-4 sm:p-6 md:p-7"
+            >
               <div className="flex items-start gap-3">
                 <BookOpen className="mt-1 h-5 w-5 shrink-0 text-[#7d26c9]" />
-                <div>
-                  <h2 className="font-display text-xl font-extrabold text-[#4f1d4b]">
+                <div className="min-w-0">
+                  <h2 className="font-display text-lg font-extrabold text-[#4f1d4b] sm:text-xl">
                     {lesson.title}
                   </h2>
                   <p className="text-xs font-extrabold text-[#7d26c9]">{lesson.titleEn}</p>
@@ -155,131 +150,29 @@ function SubjectDetail({
                 <div className="mt-5 space-y-4 border-t border-purple-200/60 pt-5">
                   <h3 className="flex items-center gap-2 font-display text-base font-extrabold text-[#4f1d4b]">
                     <Paperclip className="h-4 w-4 text-[#7d26c9]" />
-                    <span>Hình ảnh &amp; Tài liệu bài học · Lesson Materials</span>
+                    <span>Nội dung &amp; Tài liệu bài học · Lesson Materials</span>
                   </h3>
 
                   {imageAttachments.length > 0 && (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="space-y-4">
                       {imageAttachments.map((img) => (
-                        <div
+                        <InlineImageAttachmentCard
                           key={img.id}
-                          className="overflow-hidden rounded-2xl border border-white/90 bg-white/80 shadow-xs"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setLightboxImage(img)}
-                            className="block w-full cursor-pointer overflow-hidden bg-white text-left"
-                          >
-                            <img
-                              src={img.url}
-                              alt={img.name}
-                              className="h-44 w-full object-cover transition-transform duration-200 hover:scale-[1.03]"
-                            />
-                          </button>
-                          <div className="flex items-center justify-between gap-2 px-3.5 py-2.5">
-                            <div className="min-w-0">
-                              <p className="flex items-center gap-1.5 truncate text-xs font-extrabold text-[#4f1d4b]">
-                                <ImageIcon className="h-3.5 w-3.5 shrink-0 text-[#7d26c9]" />
-                                <span className="truncate">{img.name}</span>
-                              </p>
-                              {img.sizeLabel && (
-                                <p className="text-[11px] font-semibold text-[#7d4e78]">
-                                  {img.sizeLabel}
-                                </p>
-                              )}
-                            </div>
-                            <a
-                              href={buildLessonDownloadUrl(img.url)}
-                              download={img.name}
-                              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-purple-100 px-3 py-1 text-[11px] font-extrabold text-[#5b2358] hover:bg-purple-200"
-                            >
-                              <Download className="h-3 w-3" />
-                              <span>Tải ảnh</span>
-                            </a>
-                          </div>
-                        </div>
+                          image={img}
+                          onZoom={setLightboxImage}
+                        />
                       ))}
                     </div>
                   )}
 
                   {docAttachments.length > 0 && (
-                    <div className="space-y-3">
-                      {docAttachments.map((docItem) => {
-                        const attKey = `${lesson.id}-${docItem.id}`;
-                        const isPdfOpen = Boolean(openPdfMap[attKey]);
-                        const meta = getAttachmentKindLabel(docItem.kind);
-
-                        return (
-                          <div
-                            key={docItem.id}
-                            className="rounded-2xl border border-white/90 bg-white/80 p-3.5 shadow-xs"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div className="flex min-w-0 items-center gap-3">
-                                <div
-                                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[11px] font-black text-white shadow-xs ${
-                                    docItem.kind === 'pdf' ? 'bg-rose-500' : 'bg-sky-600'
-                                  }`}
-                                >
-                                  {meta.short}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="flex items-center gap-1.5 truncate text-sm font-extrabold text-[#4f1d4b]">
-                                    <FileText className="h-4 w-4 shrink-0 text-[#7d26c9]" />
-                                    <span className="truncate">{docItem.name}</span>
-                                  </p>
-                                  <p className="text-xs font-semibold text-[#7d4e78]">
-                                    {meta.label}
-                                    {docItem.sizeLabel ? ` · ${docItem.sizeLabel}` : ''}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-2">
-                                {docItem.kind === 'pdf' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => togglePdfPreview(attKey)}
-                                    className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-purple-100 px-3.5 py-1.5 text-xs font-extrabold text-[#5b2358] hover:bg-purple-200"
-                                  >
-                                    <Eye className="h-3.5 w-3.5" />
-                                    <span>{isPdfOpen ? 'Thu gọn PDF' : 'Xem trực tiếp'}</span>
-                                  </button>
-                                )}
-
-                                <a
-                                  href={docItem.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 rounded-full bg-white px-3.5 py-1.5 text-xs font-extrabold text-[#4f1d4b] ring-1 ring-purple-200 hover:bg-purple-50"
-                                >
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                  <span>Mở thẻ mới</span>
-                                </a>
-
-                                <a
-                                  href={buildLessonDownloadUrl(docItem.url)}
-                                  download={docItem.name}
-                                  className="btn-violet inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-extrabold"
-                                >
-                                  <Download className="h-3.5 w-3.5" />
-                                  <span>Tải về</span>
-                                </a>
-                              </div>
-                            </div>
-
-                            {docItem.kind === 'pdf' && isPdfOpen && (
-                              <div className="mt-3 overflow-hidden rounded-2xl border border-purple-200 bg-white">
-                                <iframe
-                                  title={docItem.name}
-                                  src={docItem.url}
-                                  className="h-[520px] w-full border-0"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                    <div className="space-y-4">
+                      {docAttachments.map((docItem) => (
+                        <InlineDocumentAttachmentCard
+                          key={docItem.id}
+                          docItem={docItem}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>

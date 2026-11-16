@@ -1,11 +1,13 @@
 import express from 'express';
 import fs from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   deployUploadedZipGame,
   sanitizeGameId,
 } from './src/server/zipGameDeployer.ts';
 import {
+  extractWordDocumentPreview,
   resolveMimeTypeForServedFile,
   sanitizeAttachmentId,
   storeUploadedLessonAttachment,
@@ -16,11 +18,76 @@ const ROOT_DIR = process.cwd();
 const GAMES_RUNTIME_DIR = path.join(ROOT_DIR, 'uploaded_games');
 const LESSON_FILES_DIR = path.join(ROOT_DIR, 'uploaded_lessons');
 
+function loadFirebaseAuthDomain(): string {
+  try {
+    const raw = readFileSync(path.join(ROOT_DIR, 'firebase-applet-config.json'), 'utf8');
+    const parsed = JSON.parse(raw) as { authDomain?: string };
+    return parsed.authDomain || 'gen-lang-client-0914265374.firebaseapp.com';
+  } catch {
+    return 'gen-lang-client-0914265374.firebaseapp.com';
+  }
+}
+
 async function startServer() {
   await fs.mkdir(GAMES_RUNTIME_DIR, { recursive: true });
   await fs.mkdir(LESSON_FILES_DIR, { recursive: true });
 
+  const firebaseAuthDomain = loadFirebaseAuthDomain();
   const app = express();
+
+  // Preserve window.opener across Google/Firebase Auth popups in Chrome & Safari
+  app.use((_req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    next();
+  });
+
+  // Same-origin reverse proxy for Firebase Auth helpers (/__/auth/* and /__/firebase/*)
+  app.use(['/__/auth', '/__/firebase'], async (req, res) => {
+    try {
+      const targetUrl = `https://${firebaseAuthDomain}${req.originalUrl}`;
+      const forwardHeaders: Record<string, string> = {};
+      if (typeof req.headers['content-type'] === 'string') {
+        forwardHeaders['content-type'] = req.headers['content-type'];
+      }
+      if (typeof req.headers['user-agent'] === 'string') {
+        forwardHeaders['user-agent'] = req.headers['user-agent'];
+      }
+
+      const method = req.method.toUpperCase();
+      let body: Buffer | undefined;
+      if (method !== 'GET' && method !== 'HEAD') {
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        }
+        body = Buffer.concat(chunks);
+      }
+
+      const upstream = await fetch(targetUrl, {
+        method,
+        headers: forwardHeaders,
+        body,
+        redirect: 'manual',
+      });
+
+      res.status(upstream.status);
+      upstream.headers.forEach((value, key) => {
+        const lower = key.toLowerCase();
+        if (
+          lower !== 'transfer-encoding' &&
+          lower !== 'content-encoding' &&
+          lower !== 'content-length'
+        ) {
+          res.setHeader(key, value);
+        }
+      });
+
+      const arrBuf = await upstream.arrayBuffer();
+      res.send(Buffer.from(arrBuf));
+    } catch {
+      res.status(502).send('Không thể kết nối máy chủ xác thực Firebase.');
+    }
+  });
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });
@@ -92,6 +159,33 @@ async function startServer() {
       res.sendFile(targetFile);
     } catch {
       res.status(404).send('Không tìm thấy tệp tài liệu bài học.');
+    }
+  });
+
+  // Extract inline HTML/text preview for Word (.docx, .doc) lesson attachments
+  app.get('/api/lessons/doc-preview/:attachmentId/:fileName', async (req, res) => {
+    try {
+      const safeId = sanitizeAttachmentId(req.params.attachmentId);
+      const safeName = path.basename(req.params.fileName);
+      const targetDir = path.resolve(LESSON_FILES_DIR, safeId);
+      const targetFile = path.resolve(targetDir, safeName);
+
+      if (!targetFile.startsWith(targetDir + path.sep)) {
+        res.status(400).json({ ok: false, error: 'Đường dẫn tệp không hợp lệ.' });
+        return;
+      }
+
+      await fs.access(targetFile);
+      const preview = await extractWordDocumentPreview(targetFile);
+      res.json({ ok: true, ...preview });
+    } catch (err) {
+      res.status(422).json({
+        ok: false,
+        error:
+          err instanceof Error
+            ? err.message
+            : 'Không thể đọc nội dung tài liệu để xem trực tiếp.',
+      });
     }
   });
 

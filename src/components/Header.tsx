@@ -57,7 +57,7 @@ export function Header({
         </button>
 
         <nav
-          className="hidden items-center gap-1.5 lg:flex xl:gap-2"
+          className="hidden items-center gap-1 lg:flex xl:gap-2"
           aria-label="Điều hướng chính / Main navigation"
         >
           {NAV_ITEMS.map((item) => {
@@ -70,7 +70,7 @@ export function Header({
                 key={item.id}
                 type="button"
                 onClick={() => handleSelect(item.id)}
-                className={`flex flex-col items-center rounded-2xl px-3.5 py-1.5 leading-tight whitespace-nowrap shrink-0 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700 xl:px-4 ${
+                className={`flex min-h-[42px] shrink-0 flex-col items-center justify-center rounded-2xl px-2.5 py-1.5 leading-tight whitespace-nowrap transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700 xl:px-4 ${
                   isActive
                     ? 'bg-white/85 text-[#4f1d4b] shadow-sm ring-1 ring-white'
                     : 'bg-white/40 text-[#5d2c59] hover:bg-white/75'
@@ -91,7 +91,7 @@ export function Header({
                 ? `Học sinh: ${currentStudentName}. Nhấn để đổi tên / Click to switch student`
                 : 'Em là ai? Nhấn để chọn tên học sinh / Click to pick your name'
             }
-            className="flex items-center gap-2 rounded-2xl border border-purple-200/80 bg-white/85 px-3.5 py-1.5 text-left leading-tight whitespace-nowrap shrink-0 shadow-xs transition-all hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700"
+            className="flex min-h-[42px] shrink-0 items-center gap-2 rounded-2xl border border-purple-200/80 bg-white/85 px-2.5 py-1.5 text-left leading-tight whitespace-nowrap shadow-xs transition-all hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700 xl:px-3.5"
           >
             {currentStudentName ? (
               <UserCheck className="h-4 w-4 shrink-0 text-purple-600" />
@@ -99,7 +99,7 @@ export function Header({
               <UserRound className="h-4 w-4 shrink-0 text-purple-600" />
             )}
             <span className="flex flex-col leading-tight">
-              <span className="max-w-[145px] truncate text-xs font-extrabold text-[#4f1d4b] xl:max-w-[180px]">
+              <span className="max-w-[125px] truncate text-xs font-extrabold text-[#4f1d4b] xl:max-w-[175px]">
                 {currentStudentName || 'Em là ai?'}
               </span>
               <span className="text-[10px] font-bold text-[#7d26c9]">
@@ -111,7 +111,7 @@ export function Header({
           <button
             type="button"
             onClick={() => handleSelect('teacher')}
-            className={`btn-violet flex flex-col items-center rounded-2xl px-4 py-1.5 leading-tight whitespace-nowrap shrink-0 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-900 xl:px-5 ${
+            className={`btn-violet flex min-h-[42px] shrink-0 flex-col items-center justify-center rounded-2xl px-3.5 py-1.5 leading-tight whitespace-nowrap transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-900 xl:px-5 ${
               activeRoute === 'teacher' ? 'ring-2 ring-white ring-offset-2 ring-offset-pink-200' : ''
             }`}
           >
@@ -129,14 +129,14 @@ export function Header({
                 ? `Học sinh: ${currentStudentName}. Nhấn để đổi tên`
                 : 'Em là ai? / Who are you?'
             }
-            className="flex items-center gap-1.5 rounded-full border border-purple-200/80 bg-white/85 px-3 py-1.5 text-xs font-extrabold text-[#4f1d4b] shadow-xs"
+            className="flex min-h-[44px] items-center gap-1.5 rounded-full border border-purple-200/80 bg-white/85 px-3 py-1.5 text-xs font-extrabold text-[#4f1d4b] shadow-xs"
           >
             {currentStudentName ? (
               <UserCheck className="h-3.5 w-3.5 shrink-0 text-purple-600" />
             ) : (
               <UserRound className="h-3.5 w-3.5 shrink-0 text-purple-600" />
             )}
-            <span className="max-w-[110px] truncate sm:max-w-[150px]">
+            <span className="max-w-[105px] truncate sm:max-w-[160px]">
               {currentStudentName || 'Em là ai?'}
             </span>
           </button>
@@ -146,7 +146,7 @@ export function Header({
             onClick={() => setMobileOpen((prev) => !prev)}
             aria-label={mobileOpen ? 'Đóng menu / Close menu' : 'Mở menu / Open menu'}
             aria-expanded={mobileOpen}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/75 text-[#4f1d4b] shadow-sm backdrop-blur-md"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/80 text-[#4f1d4b] shadow-sm backdrop-blur-md"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -154,8 +154,8 @@ export function Header({
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-white/60 bg-white/75 px-5 py-3 backdrop-blur-xl lg:hidden">
-          <div className="flex flex-wrap gap-2">
+        <div className="border-t border-white/60 bg-white/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:hidden">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
             {NAV_ITEMS.map((item) => {
               const isActive =
                 activeRoute === item.id ||
@@ -166,10 +166,10 @@ export function Header({
                   key={item.id}
                   type="button"
                   onClick={() => handleSelect(item.id)}
-                  className={`flex flex-col items-start rounded-2xl px-3.5 py-2 leading-tight whitespace-nowrap ${
+                  className={`flex min-h-[46px] flex-col items-start justify-center rounded-2xl px-3.5 py-2 leading-tight ${
                     isActive
-                      ? 'bg-white text-[#4f1d4b] shadow-sm'
-                      : 'bg-white/60 text-[#5d2c59]'
+                      ? 'bg-white text-[#4f1d4b] shadow-sm ring-1 ring-purple-200'
+                      : 'bg-white/65 text-[#5d2c59]'
                   }`}
                 >
                   <span className="text-xs font-extrabold">{item.vi}</span>
@@ -180,7 +180,7 @@ export function Header({
             <button
               type="button"
               onClick={() => handleSelect('teacher')}
-              className="btn-violet flex flex-col items-start rounded-2xl px-4 py-2 leading-tight whitespace-nowrap"
+              className="btn-violet col-span-2 flex min-h-[46px] flex-col items-center justify-center rounded-2xl px-4 py-2 leading-tight sm:col-span-1 md:items-start"
             >
               <span className="text-xs font-extrabold">GIÁO VIÊN</span>
               <span className="text-[10px] font-bold opacity-90">Teacher</span>

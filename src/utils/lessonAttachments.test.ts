@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  buildLessonDocPreviewUrl,
   buildLessonDownloadUrl,
   detectLessonAttachmentKind,
   formatAttachmentSize,
@@ -23,7 +24,7 @@ test('detectLessonAttachmentKind accepts images, pdf, docx, and doc and blocks e
   assert.equal(detectLessonAttachmentKind('vector.svg', 'image/svg+xml'), null);
 });
 
-test('buildLessonDownloadUrl appends download query cleanly', () => {
+test('buildLessonDownloadUrl and buildLessonDocPreviewUrl build expected routes', () => {
   assert.equal(
     buildLessonDownloadUrl('/lesson-files/att-1/phieu.docx'),
     '/lesson-files/att-1/phieu.docx?download=1'
@@ -32,6 +33,15 @@ test('buildLessonDownloadUrl appends download query cleanly', () => {
     buildLessonDownloadUrl('data:image/png;base64,AAA'),
     'data:image/png;base64,AAA'
   );
+  assert.equal(
+    buildLessonDocPreviewUrl('/lesson-files/att-1/phieu.docx'),
+    '/api/lessons/doc-preview/att-1/phieu.docx'
+  );
+  assert.equal(
+    buildLessonDocPreviewUrl('/lesson-files/att-1/giaoan.doc?download=1'),
+    '/api/lessons/doc-preview/att-1/giaoan.doc'
+  );
+  assert.equal(buildLessonDocPreviewUrl('https://example.com/a.docx'), null);
 });
 
 test('formatAttachmentSize formats human readable sizes', () => {

@@ -1,4 +1,4 @@
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivitiesView } from './components/ActivitiesView';
 import { GamePlayView } from './components/GamePlayView';
@@ -15,11 +15,15 @@ import {
   DEFAULT_SITE_CONFIG,
 } from './data/classroomSeed';
 import {
-  auth,
+  completeTeacherRedirectSignIn,
   isAuthorizedTeacher,
   signInTeacherWithGoogle,
   signOutTeacher,
+  subscribeTeacherAuth,
+  verifyOrRefreshTeacherToken,
+  type GoogleSignInMode,
 } from './lib/firebase';
+import { formatFirebaseAuthErrorMessage } from './utils/authDiagnostics';
 import type {
   ActivityMemory,
   CustomGame,
@@ -148,12 +152,62 @@ export default function App() {
   const isTeacherAuthorized = isAuthorizedTeacher(teacherUser);
 
   useEffect(() => {
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
+    let active = true;
+
+    void completeTeacherRedirectSignIn().then(
+      ({ user, returnedFromRedirect, error }) => {
+        if (!active) return;
+        if (returnedFromRedirect) {
+          setActiveRoute('teacher');
+          setShowStudentPicker(false);
+          if (window.location.hash !== '#teacher') {
+            window.location.hash = 'teacher';
+          }
+        }
+        if (user) {
+          setTeacherUser(user);
+        }
+        if (error) {
+          setAuthError(
+            formatFirebaseAuthErrorMessage(error, window.location.hostname)
+          );
+        }
+        setAuthReady(true);
+      }
+    );
+
+    const unsubAuth = subscribeTeacherAuth((user) => {
+      if (!active) return;
       setTeacherUser(user);
       setAuthReady(true);
+      if (user) {
+        setAuthError('');
+      }
     });
-    return () => unsubAuth();
+
+    return () => {
+      active = false;
+      unsubAuth();
+    };
   }, []);
+
+  useEffect(() => {
+    if (!teacherUser) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void verifyOrRefreshTeacherToken(teacherUser).then((status) => {
+          if (status === 'expired') {
+            setTeacherUser(null);
+            setAuthError(
+              'Phiên đăng nhập Google đã hết hạn. Vui lòng đăng nhập lại bằng tài khoản cô Tú.'
+            );
+          }
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [teacherUser]);
 
   useEffect(() => {
     void loadCustomGames().then((saved) => {
@@ -259,18 +313,20 @@ export default function App() {
     setCurrentStudentName('');
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (mode: GoogleSignInMode = 'auto') => {
     setAuthError('');
     try {
-      const user = await signInTeacherWithGoogle();
-      setTeacherUser(user);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('popup-closed-by-user')) {
-        setAuthError('Cửa sổ đăng nhập Google đã được đóng. Vui lòng thử lại nhé.');
-      } else {
-        setAuthError('Đăng nhập Google không thành công. Vui lòng kiểm tra kết nối và thử lại.');
+      const user = await signInTeacherWithGoogle(mode);
+      if (user) {
+        setTeacherUser(user);
       }
+    } catch (err) {
+      setAuthError(
+        formatFirebaseAuthErrorMessage(
+          err,
+          typeof window !== 'undefined' ? window.location.hostname : ''
+        )
+      );
     }
   };
 
@@ -453,7 +509,7 @@ export default function App() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+    <div className="relative flex min-h-screen min-h-[100dvh] flex-col overflow-x-hidden">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-x-0 top-16 z-0 flex justify-around text-2xl text-white/75 select-none"
@@ -565,7 +621,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="relative z-0 mx-auto w-full max-w-[1200px] px-6 pt-6 pb-20 text-center text-xs font-semibold text-[#6b4869] md:pb-12 md:pr-56 md:pl-56">
+      <footer className="relative z-0 mx-auto w-full max-w-[1200px] px-6 pt-6 pb-24 text-center text-xs font-semibold text-[#6b4869] sm:pb-20 lg:px-56 lg:pb-12">
         <p className="font-bold text-[#4f1d4b]">{siteConfig.classTitle} · Lớp 3.17</p>
         <p className="mt-0.5">
           Mỗi ngày đến lớp là một ngày vui ♡ · A New Joy Every Day
