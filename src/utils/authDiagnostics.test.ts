@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildRedirectFlowDiagnosticsContext,
+  classifyAuthErrorMismatch,
   extractFirebaseAuthErrorCode,
   formatFirebaseAuthErrorMessage,
   isSessionExpiredErrorCode,
   resolvePendingTeacherRedirectRoute,
+  serializeAuthErrorDetails,
   shouldFallbackToRedirect,
 } from './authDiagnostics';
 
@@ -52,4 +55,61 @@ test('resolvePendingTeacherRedirectRoute restores teacher route after Google red
   assert.equal(resolvePendingTeacherRedirectRoute(true, '#teacher'), true);
   assert.equal(resolvePendingTeacherRedirectRoute(true, '#games'), false);
   assert.equal(resolvePendingTeacherRedirectRoute(false, ''), false);
+});
+
+test('classifyAuthErrorMismatch pinpoints domain, origin, credentials, and storage errors', () => {
+  assert.equal(
+    classifyAuthErrorMismatch('auth/unauthorized-domain').category,
+    'domain'
+  );
+  assert.equal(
+    classifyAuthErrorMismatch('auth/app-not-authorized').category,
+    'origin'
+  );
+  assert.equal(
+    classifyAuthErrorMismatch('auth/operation-not-allowed').category,
+    'credentials'
+  );
+  assert.equal(
+    classifyAuthErrorMismatch('auth/web-storage-unsupported').category,
+    'storage-or-cookie'
+  );
+});
+
+test('serializeAuthErrorDetails preserves safe customData and redacts tokens', () => {
+  const err = Object.assign(new Error('Firebase: Error (auth/invalid-credential).'), {
+    code: 'auth/invalid-credential',
+    customData: {
+      appName: '[DEFAULT]',
+      email: 'teacher@example.com',
+      _tokenResponse: { idToken: 'secret-jwt' },
+      oauthAccessToken: 'secret-oauth',
+    },
+  });
+
+  const details = serializeAuthErrorDetails(err);
+  assert.equal(details.code, 'auth/invalid-credential');
+  assert.equal(details.mismatchCategory, 'credentials');
+  assert.equal(details.customData?.appName, '[DEFAULT]');
+  assert.equal(details.customData?.email, 'teacher@example.com');
+  assert.equal(details.customData?._tokenResponse, '[REDACTED]');
+  assert.equal(details.customData?.oauthAccessToken, '[REDACTED]');
+});
+
+test('buildRedirectFlowDiagnosticsContext detects same-origin vs cross-origin authDomain', () => {
+  const crossOrigin = buildRedirectFlowDiagnosticsContext({
+    origin: 'https://ais-pre-example.run.app',
+    hostname: 'ais-pre-example.run.app',
+    authDomain: 'gen-lang-client.firebaseapp.com',
+    projectId: 'gen-lang-client',
+  });
+  assert.equal(crossOrigin.sameOriginAuthHandler, false);
+
+  const sameOrigin = buildRedirectFlowDiagnosticsContext({
+    origin: 'https://ais-pre-example.run.app',
+    hostname: 'ais-pre-example.run.app',
+    authDomain: 'ais-pre-example.run.app',
+    projectId: 'gen-lang-client',
+  });
+  assert.equal(sameOrigin.sameOriginAuthHandler, true);
 });

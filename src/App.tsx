@@ -1,4 +1,3 @@
-import type { User } from 'firebase/auth';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivitiesView } from './components/ActivitiesView';
 import { GamePlayView } from './components/GamePlayView';
@@ -15,15 +14,10 @@ import {
   DEFAULT_SITE_CONFIG,
 } from './data/classroomSeed';
 import {
-  completeTeacherRedirectSignIn,
-  isAuthorizedTeacher,
-  signInTeacherWithGoogle,
-  signOutTeacher,
-  subscribeTeacherAuth,
-  verifyOrRefreshTeacherToken,
-  type GoogleSignInMode,
-} from './lib/firebase';
-import { formatFirebaseAuthErrorMessage } from './utils/authDiagnostics';
+  checkTeacherSession,
+  loginTeacherWithPassword,
+  logoutTeacherSession,
+} from './utils/teacherSession';
 import type {
   ActivityMemory,
   CustomGame,
@@ -131,9 +125,9 @@ export default function App() {
     })
   );
 
-  // Firebase Auth state for Teacher (restricted to nguyentu200798@gmail.com)
+  // Teacher Portal Session (password verified via server HttpOnly session cookie)
   const [authReady, setAuthReady] = useState(false);
-  const [teacherUser, setTeacherUser] = useState<User | null>(null);
+  const [isTeacherAuthorized, setIsTeacherAuthorized] = useState(false);
   const [authError, setAuthError] = useState('');
 
   const initial = loadClassroomState();
@@ -149,65 +143,17 @@ export default function App() {
   const [localGames, setLocalGames] = useState<CustomGame[]>([]);
   const [remoteGames, setRemoteGames] = useState<CustomGame[]>([]);
 
-  const isTeacherAuthorized = isAuthorizedTeacher(teacherUser);
-
   useEffect(() => {
     let active = true;
-
-    void completeTeacherRedirectSignIn().then(
-      ({ user, returnedFromRedirect, error }) => {
-        if (!active) return;
-        if (returnedFromRedirect) {
-          setActiveRoute('teacher');
-          setShowStudentPicker(false);
-          if (window.location.hash !== '#teacher') {
-            window.location.hash = 'teacher';
-          }
-        }
-        if (user) {
-          setTeacherUser(user);
-        }
-        if (error) {
-          setAuthError(
-            formatFirebaseAuthErrorMessage(error, window.location.hostname)
-          );
-        }
-        setAuthReady(true);
-      }
-    );
-
-    const unsubAuth = subscribeTeacherAuth((user) => {
+    void checkTeacherSession().then((authenticated) => {
       if (!active) return;
-      setTeacherUser(user);
+      setIsTeacherAuthorized(authenticated);
       setAuthReady(true);
-      if (user) {
-        setAuthError('');
-      }
     });
-
     return () => {
       active = false;
-      unsubAuth();
     };
   }, []);
-
-  useEffect(() => {
-    if (!teacherUser) return;
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        void verifyOrRefreshTeacherToken(teacherUser).then((status) => {
-          if (status === 'expired') {
-            setTeacherUser(null);
-            setAuthError(
-              'Phiên đăng nhập Google đã hết hạn. Vui lòng đăng nhập lại bằng tài khoản cô Tú.'
-            );
-          }
-        });
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [teacherUser]);
 
   useEffect(() => {
     void loadCustomGames().then((saved) => {
@@ -313,27 +259,23 @@ export default function App() {
     setCurrentStudentName('');
   };
 
-  const handleGoogleLogin = async (mode: GoogleSignInMode = 'auto') => {
+  const handlePasswordLogin = async (password: string): Promise<boolean> => {
     setAuthError('');
-    try {
-      const user = await signInTeacherWithGoogle(mode);
-      if (user) {
-        setTeacherUser(user);
-      }
-    } catch (err) {
-      setAuthError(
-        formatFirebaseAuthErrorMessage(
-          err,
-          typeof window !== 'undefined' ? window.location.hostname : ''
-        )
-      );
+    const res = await loginTeacherWithPassword(password);
+    if (res.ok && res.authenticated) {
+      setIsTeacherAuthorized(true);
+      return true;
     }
+    setAuthError(
+      res.error || 'Mật khẩu chưa đúng. Vui lòng kiểm tra lại và thử lại.'
+    );
+    return false;
   };
 
   const handleLogout = async () => {
     setAuthError('');
-    await signOutTeacher();
-    setTeacherUser(null);
+    await logoutTeacherSession();
+    setIsTeacherAuthorized(false);
   };
 
   const handleSaveQuizResult = (result: QuizResult) => {
@@ -579,10 +521,9 @@ export default function App() {
         {activeRoute === 'teacher' && (
           <TeacherView
             authReady={authReady}
-            teacherUser={teacherUser}
             isAuthorized={isTeacherAuthorized}
             authError={authError}
-            onGoogleLogin={handleGoogleLogin}
+            onPasswordLogin={handlePasswordLogin}
             onLogout={handleLogout}
             siteConfig={siteConfig}
             onSaveSiteConfig={saveSiteConfigRemote}

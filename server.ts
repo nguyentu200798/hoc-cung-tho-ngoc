@@ -1,6 +1,5 @@
 import express from 'express';
 import fs from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   deployUploadedZipGame,
@@ -12,85 +11,83 @@ import {
   sanitizeAttachmentId,
   storeUploadedLessonAttachment,
 } from './src/server/lessonAttachmentStore.ts';
+import {
+  buildTeacherSessionCookieHeader,
+  createTeacherSessionToken,
+  parseCookieValue,
+  TEACHER_SESSION_COOKIE_NAME,
+  verifyTeacherPassword,
+  verifyTeacherSessionToken,
+} from './src/server/teacherAuth.ts';
 
 const PORT = 3000;
 const ROOT_DIR = process.cwd();
 const GAMES_RUNTIME_DIR = path.join(ROOT_DIR, 'uploaded_games');
 const LESSON_FILES_DIR = path.join(ROOT_DIR, 'uploaded_lessons');
 
-function loadFirebaseAuthDomain(): string {
-  try {
-    const raw = readFileSync(path.join(ROOT_DIR, 'firebase-applet-config.json'), 'utf8');
-    const parsed = JSON.parse(raw) as { authDomain?: string };
-    return parsed.authDomain || 'gen-lang-client-0914265374.firebaseapp.com';
-  } catch {
-    return 'gen-lang-client-0914265374.firebaseapp.com';
-  }
+function isHttpsRequest(req: express.Request): boolean {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] ?? '');
+  return req.secure || forwardedProto.split(',')[0]?.trim().toLowerCase() === 'https';
 }
 
 async function startServer() {
   await fs.mkdir(GAMES_RUNTIME_DIR, { recursive: true });
   await fs.mkdir(LESSON_FILES_DIR, { recursive: true });
 
-  const firebaseAuthDomain = loadFirebaseAuthDomain();
   const app = express();
-
-  // Preserve window.opener across Google/Firebase Auth popups in Chrome & Safari
-  app.use((_req, res, next) => {
-    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    next();
-  });
-
-  // Same-origin reverse proxy for Firebase Auth helpers (/__/auth/* and /__/firebase/*)
-  app.use(['/__/auth', '/__/firebase'], async (req, res) => {
-    try {
-      const targetUrl = `https://${firebaseAuthDomain}${req.originalUrl}`;
-      const forwardHeaders: Record<string, string> = {};
-      if (typeof req.headers['content-type'] === 'string') {
-        forwardHeaders['content-type'] = req.headers['content-type'];
-      }
-      if (typeof req.headers['user-agent'] === 'string') {
-        forwardHeaders['user-agent'] = req.headers['user-agent'];
-      }
-
-      const method = req.method.toUpperCase();
-      let body: Buffer | undefined;
-      if (method !== 'GET' && method !== 'HEAD') {
-        const chunks: Buffer[] = [];
-        for await (const chunk of req) {
-          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-        }
-        body = Buffer.concat(chunks);
-      }
-
-      const upstream = await fetch(targetUrl, {
-        method,
-        headers: forwardHeaders,
-        body,
-        redirect: 'manual',
-      });
-
-      res.status(upstream.status);
-      upstream.headers.forEach((value, key) => {
-        const lower = key.toLowerCase();
-        if (
-          lower !== 'transfer-encoding' &&
-          lower !== 'content-encoding' &&
-          lower !== 'content-length'
-        ) {
-          res.setHeader(key, value);
-        }
-      });
-
-      const arrBuf = await upstream.arrayBuffer();
-      res.send(Buffer.from(arrBuf));
-    } catch {
-      res.status(502).send('Không thể kết nối máy chủ xác thực Firebase.');
-    }
-  });
+  app.set('trust proxy', 1);
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });
+  });
+
+  app.get('/api/teacher/session', (req, res) => {
+    const token = parseCookieValue(req.headers.cookie, TEACHER_SESSION_COOKIE_NAME);
+    const authenticated = verifyTeacherSessionToken(token);
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ok: true, authenticated });
+  });
+
+  app.post('/api/teacher/login', express.json({ limit: '16kb' }), (req, res) => {
+    const password =
+      req.body && typeof req.body === 'object' && 'password' in req.body
+        ? String((req.body as { password?: unknown }).password ?? '')
+        : '';
+
+    if (!password.trim()) {
+      res.status(400).json({
+        ok: false,
+        authenticated: false,
+        error: 'Vui lòng nhập mật khẩu giáo viên.',
+      });
+      return;
+    }
+
+    if (!verifyTeacherPassword(password)) {
+      res.status(401).json({
+        ok: false,
+        authenticated: false,
+        error: 'Mật khẩu chưa đúng. Vui lòng kiểm tra lại và thử lại.',
+      });
+      return;
+    }
+
+    const token = createTeacherSessionToken();
+    res.setHeader(
+      'Set-Cookie',
+      buildTeacherSessionCookieHeader(token, isHttpsRequest(req), false)
+    );
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ok: true, authenticated: true });
+  });
+
+  app.post('/api/teacher/logout', (req, res) => {
+    res.setHeader(
+      'Set-Cookie',
+      buildTeacherSessionCookieHeader('', isHttpsRequest(req), true)
+    );
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ok: true, authenticated: false });
   });
 
   // Upload lesson attachment (image, pdf, docx, doc)

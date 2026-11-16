@@ -1,10 +1,10 @@
-import type { User } from 'firebase/auth';
 import {
-  AlertTriangle,
   Award,
   BookOpen,
   Camera,
   CheckCircle2,
+  Eye,
+  EyeOff,
   FileArchive,
   FileSpreadsheet,
   FileText,
@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ASSETS, SUBJECTS_DATA } from '../data/classroomSeed';
-import { TEACHER_ALLOWED_EMAIL, type GoogleSignInMode } from '../lib/firebase';
 import type {
   ActivityMemory,
   CustomGame,
@@ -65,10 +64,9 @@ type TeacherTab = 'activities' | 'subjects' | 'games' | 'page';
 
 interface TeacherViewProps {
   authReady: boolean;
-  teacherUser: User | null;
   isAuthorized: boolean;
   authError: string;
-  onGoogleLogin: (mode?: GoogleSignInMode) => Promise<void>;
+  onPasswordLogin: (password: string) => Promise<boolean>;
   onLogout: () => Promise<void>;
   siteConfig: SiteConfig;
   onSaveSiteConfig: (cfg: SiteConfig) => Promise<void>;
@@ -114,10 +112,9 @@ interface TeacherViewProps {
 
 export function TeacherView({
   authReady,
-  teacherUser,
   isAuthorized,
   authError,
-  onGoogleLogin,
+  onPasswordLogin,
   onLogout,
   siteConfig,
   onSaveSiteConfig,
@@ -157,6 +154,8 @@ export function TeacherView({
   const [statusMessage, setStatusMessage] = useState('');
   const [actionError, setActionError] = useState('');
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Whole-class Roster states (Upload file OR Copy-paste into textarea OR quick single add)
   const [bulkRosterText, setBulkRosterText] = useState('');
@@ -249,20 +248,15 @@ export function TeacherView({
     }, 4500);
   };
 
-  const handleSignInClick = async (mode: GoogleSignInMode = 'auto') => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsSigningIn(true);
     try {
-      await onGoogleLogin(mode);
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
-
-  const handleSwitchAccount = async () => {
-    setIsSigningIn(true);
-    try {
-      await onLogout();
-      await onGoogleLogin('auto');
+      const ok = await onPasswordLogin(passwordInput);
+      if (ok) {
+        setPasswordInput('');
+        setShowPassword(false);
+      }
     } finally {
       setIsSigningIn(false);
     }
@@ -285,11 +279,9 @@ export function TeacherView({
   }
 
   if (!isAuthorized) {
-    const isWrongAccount = Boolean(teacherUser && !isAuthorized);
-
     return (
-      <div className="mx-auto max-w-[920px] px-5 pt-10 pb-16 md:px-8">
-        <section className="glass-panel rounded-[2rem] p-8 md:p-10">
+      <div className="mx-auto max-w-[780px] px-5 pt-10 pb-16 md:px-8">
+        <section className="glass-panel rounded-[2rem] p-7 md:p-10">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
             <img
               src={ASSETS.btnKeHoach}
@@ -300,117 +292,93 @@ export function TeacherView({
             <div>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1 text-xs font-extrabold text-[#7d26c9]">
                 <Lock className="h-3.5 w-3.5" />
-                <span>Xác thực Gmail Giáo Viên / Teacher Gmail Auth</span>
+                <span>Cổng Giáo Viên · Teacher Portal</span>
               </span>
               <h1 className="font-display mt-2 text-3xl font-extrabold text-[#4f1d4b]">
                 Đăng nhập giáo viên
               </h1>
               <p className="text-sm font-extrabold text-[#7d26c9]">
-                Teacher Portal · Ms. Tu (Class 3.17)
+                Teacher Mode · Ms. Tu (Class 3.17)
               </p>
             </div>
           </div>
 
           <p className="mt-5 text-base font-bold text-[#4f1d4b]">
-            Chỉ tài khoản Gmail{' '}
-            <span className="rounded-lg bg-white/90 px-2 py-0.5 font-black text-[#7d26c9] ring-1 ring-purple-200">
-              {TEACHER_ALLOWED_EMAIL}
-            </span>{' '}
-            mới được phép đăng nhập để thêm danh sách học sinh cả lớp, nhập thành tích, bảng xếp hạng tuần, đăng hoạt động lớp, bài học và trò chơi.
+            Vui lòng nhập mật khẩu giáo viên để vào chế độ quản lý danh sách lớp, thành tích, bảng xếp hạng tuần, hoạt động lớp, bài học và trò chơi.
           </p>
           <p className="mt-1 text-xs font-semibold text-[#6b4869]">
-            Access is strictly restricted to the verified Google account ({TEACHER_ALLOWED_EMAIL}) to manage class roster, achievements, weekly honors, activities, lessons, and games.
+            Enter the teacher password to manage class roster, achievements, weekly honors, activities, lessons, and games.
           </p>
 
-          {isWrongAccount && teacherUser && (
-            <div
-              role="alert"
-              className="mt-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50/90 p-4 text-rose-900"
-            >
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
-              <div>
-                <p className="text-sm font-extrabold">
-                  Tài khoản {teacherUser.email} không có quyền truy cập khu vực Giáo viên!
-                </p>
-                <p className="mt-0.5 text-xs font-semibold text-rose-700">
-                  Access denied for {teacherUser.email}. Please sign in with {TEACHER_ALLOWED_EMAIL}.
-                </p>
+          <form onSubmit={(e) => void handlePasswordSubmit(e)} className="mt-6 space-y-4">
+            <div>
+              <label
+                htmlFor="teacher-password-input"
+                className="mb-1.5 block text-xs font-extrabold text-[#4f1d4b]"
+              >
+                Mật khẩu giáo viên / Teacher Password
+              </label>
+              <div className="relative">
+                <input
+                  id="teacher-password-input"
+                  type={showPassword ? 'text' : 'password'}
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="Nhập mật khẩu để vào chế độ giáo viên..."
+                  autoComplete="current-password"
+                  className="w-full rounded-2xl border border-purple-200 bg-white/95 py-3 pr-12 pl-4 text-base font-bold text-[#4f1d4b] shadow-xs transition-colors placeholder:font-semibold placeholder:text-purple-300 focus:border-purple-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={
+                    showPassword
+                      ? 'Ẩn mật khẩu / Hide password'
+                      : 'Hiện mật khẩu / Show password'
+                  }
+                  className="absolute top-1/2 right-3 -translate-y-1/2 rounded-xl p-1.5 text-[#7d26c9] transition-colors hover:bg-purple-50"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
               </div>
             </div>
-          )}
 
-          {authError && (
-            <div
-              role="alert"
-              className="mt-4 rounded-2xl border border-rose-200 bg-rose-50/90 px-4 py-3 text-xs font-bold text-rose-800"
-            >
-              {authError}
-            </div>
-          )}
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            {isWrongAccount ? (
-              <>
-                <button
-                  type="button"
-                  disabled={isSigningIn}
-                  onClick={handleSwitchAccount}
-                  className="btn-violet rounded-2xl px-7 py-3 text-center leading-tight transition-all disabled:opacity-60"
-                >
-                  <span className="block text-sm font-extrabold">
-                    {isSigningIn ? 'Đang mở Google...' : 'Đổi sang Gmail cô Tú →'}
-                  </span>
-                  <span className="block text-[11px] font-bold opacity-90">
-                    Switch Google Account
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void onLogout()}
-                  className="rounded-2xl bg-white/85 px-5 py-3 text-sm font-bold text-[#5b2358] hover:bg-white"
-                >
-                  Đăng xuất / Sign Out
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  disabled={isSigningIn}
-                  onClick={() => void handleSignInClick('auto')}
-                  className="btn-violet cursor-pointer rounded-2xl px-7 py-3 text-center leading-tight transition-all disabled:opacity-60"
-                >
-                  <span className="block text-sm font-extrabold">
-                    {isSigningIn ? 'Đang xác thực Google...' : 'Đăng nhập bằng Gmail cô Tú →'}
-                  </span>
-                  <span className="block text-[11px] font-bold opacity-90">
-                    Sign in with Google ({TEACHER_ALLOWED_EMAIL})
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  disabled={isSigningIn}
-                  onClick={() => void handleSignInClick('redirect')}
-                  className="cursor-pointer rounded-2xl border border-purple-200 bg-white/90 px-4 py-3 text-left leading-tight text-[#5b2358] transition-colors hover:bg-white disabled:opacity-60"
-                >
-                  <span className="block text-xs font-extrabold">
-                    Đăng nhập bằng chuyển hướng
-                  </span>
-                  <span className="block text-[10px] font-semibold opacity-80">
-                    Dùng khi Safari / điện thoại chặn pop-up
-                  </span>
-                </button>
-              </>
+            {authError && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-rose-200 bg-rose-50/95 px-4 py-3 text-sm font-bold text-rose-800"
+              >
+                {authError}
+              </div>
             )}
 
-            <button
-              type="button"
-              onClick={() => onNavigate('home')}
-              className="cursor-pointer rounded-2xl bg-white/80 px-5 py-3 text-sm font-bold text-[#5b2358] hover:bg-white"
-            >
-              Về trang chủ / Homepage
-            </button>
-          </div>
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="submit"
+                disabled={isSigningIn}
+                className="btn-violet cursor-pointer rounded-2xl px-7 py-3 text-center leading-tight transition-all disabled:opacity-60"
+              >
+                <span className="block text-sm font-extrabold">
+                  {isSigningIn ? 'Đang kiểm tra mật khẩu...' : 'Vào chế độ giáo viên →'}
+                </span>
+                <span className="block text-[11px] font-bold opacity-90">
+                  Enter Teacher Mode
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNavigate('home')}
+                className="cursor-pointer rounded-2xl bg-white/85 px-5 py-3 text-sm font-bold text-[#5b2358] hover:bg-white"
+              >
+                Về trang chủ / Homepage
+              </button>
+            </div>
+          </form>
         </section>
       </div>
     );
@@ -908,7 +876,7 @@ export function TeacherView({
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/90 px-3 py-1 text-xs font-extrabold text-emerald-800">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>Đã xác thực · {teacherUser?.email}</span>
+            <span>Đã mở khóa · Chế độ Giáo viên (Cô Tú)</span>
           </span>
           <h1 className="font-display mt-1.5 text-3xl font-extrabold text-[#4f1d4b]">
             Góc Giáo Viên · Cô Tú (Lớp 3.17)
