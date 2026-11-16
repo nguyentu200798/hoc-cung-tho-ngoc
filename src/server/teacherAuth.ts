@@ -8,6 +8,20 @@ export const TEACHER_SESSION_TTL_SEC = Math.floor(TEACHER_SESSION_TTL_MS / 1000)
 const DEFAULT_TEACHER_PASSWORD_SHA256 =
   'bcf096e12ced0ad8a31129eb160904e4ef464c9c6622ca153c8dc0a9b2b9d26c';
 
+/** Thrown when a deployed environment is missing required teacher auth settings. */
+export class TeacherAuthConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TeacherAuthConfigError';
+  }
+}
+
+// On Vercel, never fall back to the built-in defaults: they are visible in the repo,
+// so the password would be public and session cookies could be forged.
+function requiresExplicitConfig(): boolean {
+  return Boolean(process.env.VERCEL);
+}
+
 function sha256Buffer(value: string): Buffer {
   return crypto.createHash('sha256').update(value, 'utf8').digest();
 }
@@ -16,6 +30,9 @@ export function resolveExpectedPasswordDigest(overridePassword?: string): Buffer
   const custom = (overridePassword ?? process.env.TEACHER_PASSWORD ?? '').trim();
   if (custom.length > 0) {
     return sha256Buffer(custom);
+  }
+  if (requiresExplicitConfig()) {
+    throw new TeacherAuthConfigError('TEACHER_PASSWORD environment variable is not set.');
   }
   return Buffer.from(DEFAULT_TEACHER_PASSWORD_SHA256, 'hex');
 }
@@ -40,6 +57,11 @@ export function resolveSessionSecret(overrideSecret?: string): string {
   const configured = (overrideSecret ?? process.env.TEACHER_SESSION_SECRET ?? '').trim();
   if (configured.length >= 16) {
     return configured;
+  }
+  if (requiresExplicitConfig()) {
+    throw new TeacherAuthConfigError(
+      'TEACHER_SESSION_SECRET environment variable must be set (at least 16 characters).'
+    );
   }
   return crypto
     .createHash('sha256')
